@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducer, useState, useEffect } from 'react';
-import type { AppState, AppAction, Sprite, SpriteSheet, GalleryFilter } from '@/types';
+import type { AppState, AppAction, Sprite, SpriteSheet, GalleryFilter, GalleryItem } from '@/types';
 import Sidebar from '@/components/Sidebar';
 import GeneratePanel from '@/components/GeneratePanel';
 import ReviewPanel from '@/components/ReviewPanel';
@@ -107,6 +107,10 @@ export default function Home() {
   const [state, dispatch] = useReducer(reducer, initialState, loadInitialState);
   const [chromaKeyTarget, setChromaKeyTarget] = useState<Sprite | null>(null);
 
+  const recentItems: GalleryItem[] = [...state.sprites, ...state.spriteSheets].sort(
+    (a, b) => b.createdAt - a.createdAt
+  );
+
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -123,6 +127,16 @@ export default function Home() {
       <Sidebar
         currentView={state.currentView}
         onNavigate={(view) => dispatch({ type: 'SET_VIEW', payload: view })}
+        recentItems={recentItems}
+        onRecentClick={(item: GalleryItem) => {
+          if (item.type === 'sprite') {
+            dispatch({ type: 'SET_SELECTED_FOR_REVIEW', payload: [item.id] });
+            dispatch({ type: 'SET_VIEW', payload: 'review' });
+          } else {
+            dispatch({ type: 'SET_SELECTED_SHEET', payload: item.id });
+            dispatch({ type: 'SET_VIEW', payload: 'animate' });
+          }
+        }}
       />
 
       <main className="flex-1 overflow-auto">
