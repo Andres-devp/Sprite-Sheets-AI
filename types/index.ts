@@ -1,6 +1,6 @@
 export type ArtStyle = '8bit' | '16bit' | '32bit' | 'chibi' | 'vector' | 'handdrawn';
 export type CameraAngle = 'front' | 'profile' | 'three-quarter' | 'topdown';
-export type AppView = 'generate' | 'review' | 'animate' | 'gallery';
+export type AppView = 'generate' | 'review' | 'animate' | 'gallery' | 'video';
 export type GalleryFilter = 'all' | 'sprites' | 'spritesheets' | 'animations';
 
 export interface Sprite {
