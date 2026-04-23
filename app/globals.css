@@ -1,27 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-card: #1a1a1a;
-  --bg-modal: #1e1e1e;
-  --border: #2a2a2a;
-  --text-primary: #f0f0f0;
-  --text-secondary: #9ca3af;
+  --background: hsl(220, 20%, 8%);
+  --foreground: hsl(216, 20%, 90%);
+  --card: hsl(220, 18%, 11%);
+  --card-foreground: hsl(216, 20%, 90%);
+  --surface: hsl(220, 16%, 13%);
+  --surface-foreground: hsl(216, 20%, 90%);
+  --muted: hsl(220, 16%, 14%);
+  --muted-foreground: hsl(218, 12%, 48%);
+  --accent: hsl(217, 91%, 60%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --primary: hsl(216, 20%, 90%);
+  --primary-foreground: hsl(220, 20%, 6%);
+  --secondary: hsl(220, 16%, 14%);
+  --secondary-foreground: hsl(216, 20%, 90%);
+  --border: hsl(220, 14%, 18%);
+  --input: hsl(220, 14%, 18%);
+  --ring: hsl(217, 91%, 60%);
+  --radius: 0.75rem;
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --popover: hsl(220, 18%, 11%);
+  --popover-foreground: hsl(216, 20%, 90%);
+  --sidebar-background: hsl(222, 22%, 5%);
+  --sidebar-foreground: hsl(216, 20%, 90%);
+  --sidebar-border: hsl(220, 14%, 14%);
+  --sidebar-accent: hsl(220, 18%, 10%);
+  --sidebar-accent-foreground: hsl(216, 20%, 90%);
+  --sidebar-primary: hsl(217, 91%, 60%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-ring: hsl(217, 91%, 60%);
+  --checkerboard-light: hsl(220, 14%, 16%);
+  --checkerboard-dark: hsl(220, 16%, 10%);
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 .checkerboard {
   background-image:
-    linear-gradient(45deg, #555 25%, transparent 25%),
-    linear-gradient(-45deg, #555 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #555 75%),
-    linear-gradient(-45deg, transparent 75%, #555 75%);
+    linear-gradient(45deg, var(--checkerboard-dark) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checkerboard-dark) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checkerboard-dark) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark) 75%);
   background-size: 16px 16px;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
-  background-color: #333;
+  background-color: var(--checkerboard-light);
 }
