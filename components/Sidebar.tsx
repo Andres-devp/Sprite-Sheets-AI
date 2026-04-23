@@ -9,11 +9,16 @@ interface SidebarProps {
 
 const steps: { id: AppView; label: string; num: number }[] = [
   { id: 'generate', label: 'Character', num: 1 },
-  { id: 'gallery', label: 'Review', num: 2 },
-  { id: 'animate', label: 'Animate', num: 3 },
+  { id: 'review',   label: 'Sprite Sheet', num: 2 },
+  { id: 'animate',  label: 'Animate', num: 3 },
 ];
 
-const stepOrder: Record<AppView, number> = { generate: 1, gallery: 2, animate: 3 };
+const stepOrder: Record<AppView, number> = {
+  generate: 1,
+  review: 2,
+  animate: 3,
+  gallery: 0,
+};
 
 export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
   const currentStep = stepOrder[currentView];
@@ -34,8 +39,9 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
       <nav className="flex-1 px-2 py-4 space-y-1">
         {([
           { id: 'generate' as AppView, label: 'AI Generate' },
-          { id: 'gallery' as AppView, label: 'Gallery' },
-          { id: 'animate' as AppView, label: 'Animate & Export' },
+          { id: 'review'   as AppView, label: 'Sprite Sheet' },
+          { id: 'animate'  as AppView, label: 'Animate' },
+          { id: 'gallery'  as AppView, label: 'Gallery' },
         ] as const).map((item) => (
           <button
             key={item.id}

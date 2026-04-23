@@ -1,6 +1,6 @@
 export type ArtStyle = '8bit' | '16bit' | '32bit' | 'chibi' | 'vector' | 'handdrawn';
 export type CameraAngle = 'front' | 'profile' | 'three-quarter' | 'topdown';
-export type AppView = 'generate' | 'review' | 'gallery';
+export type AppView = 'generate' | 'review' | 'animate' | 'gallery';
 export type GalleryFilter = 'all' | 'sprites' | 'spritesheets' | 'animations';
 
 export interface Sprite {
@@ -12,23 +12,24 @@ export interface Sprite {
   cameraAngle: CameraAngle;
   imageBase64: string;
   mimeType: string;
+  seed?: number;
   createdAt: number;
 }
 
 export interface SpriteSheet {
   id: string;
   type: 'spritesheet';
-  name: string;            // character name
-  animationName: string;   // e.g. "walk cycle"
-  sourcePrompt: string;    // original character prompt
+  name: string;
+  animationName: string;
+  sourcePrompt: string;
   artStyle: ArtStyle;
   cameraAngle: CameraAngle;
   imageBase64: string;
   mimeType: string;
   cols: number;
   rows: number;
-  frameSize: number;       // px per frame side (e.g. 256)
-  frames?: string[];       // extracted frame data URLs
+  frameSize: number;
+  frames?: string[];
   createdAt: number;
 }
 
@@ -45,7 +46,8 @@ export interface AppState {
   currentView: AppView;
   sprites: Sprite[];
   spriteSheets: SpriteSheet[];
-  selectedForReview: string[];   // sprite IDs selected for Step 2
+  selectedForReview: string[];
+  selectedSheetId: string | null;
   galleryFilter: GalleryFilter;
   isGenerating: boolean;
   isAnimating: boolean;
@@ -58,6 +60,7 @@ export type AppAction =
   | { type: 'ADD_SPRITESHEET'; payload: SpriteSheet }
   | { type: 'UPDATE_SPRITESHEET_FRAMES'; payload: { id: string; frames: string[] } }
   | { type: 'SET_SELECTED_FOR_REVIEW'; payload: string[] }
+  | { type: 'SET_SELECTED_SHEET'; payload: string | null }
   | { type: 'SET_GALLERY_FILTER'; payload: GalleryFilter }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_ANIMATING'; payload: boolean }

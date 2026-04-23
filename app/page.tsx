@@ -5,6 +5,7 @@ import type { AppState, AppAction, Sprite, SpriteSheet, GalleryFilter } from '@/
 import Sidebar from '@/components/Sidebar';
 import GeneratePanel from '@/components/GeneratePanel';
 import ReviewPanel from '@/components/ReviewPanel';
+import AnimatePanel from '@/components/AnimatePanel';
 import Gallery from '@/components/Gallery';
 import ChromaKeyModal from '@/components/ChromaKeyModal';
 
@@ -13,6 +14,7 @@ const initialState: AppState = {
   sprites: [],
   spriteSheets: [],
   selectedForReview: [],
+  selectedSheetId: null,
   galleryFilter: 'all',
   isGenerating: false,
   isAnimating: false,
@@ -23,21 +25,27 @@ function reducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_VIEW':
       return { ...state, currentView: action.payload, error: null };
+
     case 'ADD_SPRITE':
       return {
         ...state,
         sprites: [action.payload, ...state.sprites].slice(0, 30),
         isGenerating: false,
         error: null,
-        currentView: 'gallery',
+        selectedForReview: [action.payload.id],
+        currentView: 'review',
       };
+
     case 'ADD_SPRITESHEET':
       return {
         ...state,
         spriteSheets: [action.payload, ...state.spriteSheets].slice(0, 30),
         isAnimating: false,
         error: null,
+        selectedSheetId: action.payload.id,
+        currentView: 'animate',
       };
+
     case 'UPDATE_SPRITESHEET_FRAMES':
       return {
         ...state,
@@ -45,24 +53,35 @@ function reducer(state: AppState, action: AppAction): AppState {
           ss.id === action.payload.id ? { ...ss, frames: action.payload.frames } : ss
         ),
       };
+
     case 'SET_SELECTED_FOR_REVIEW':
       return { ...state, selectedForReview: action.payload };
+
+    case 'SET_SELECTED_SHEET':
+      return { ...state, selectedSheetId: action.payload };
+
     case 'SET_GALLERY_FILTER':
       return { ...state, galleryFilter: action.payload };
+
     case 'SET_GENERATING':
       return { ...state, isGenerating: action.payload, error: null };
+
     case 'SET_ANIMATING':
       return { ...state, isAnimating: action.payload, error: null };
+
     case 'SET_ERROR':
       return { ...state, error: action.payload, isGenerating: false, isAnimating: false };
+
     case 'DELETE_ITEM': {
       return {
         ...state,
         sprites: state.sprites.filter((s) => s.id !== action.payload),
         spriteSheets: state.spriteSheets.filter((ss) => ss.id !== action.payload),
         selectedForReview: state.selectedForReview.filter((id) => id !== action.payload),
+        selectedSheetId: state.selectedSheetId === action.payload ? null : state.selectedSheetId,
       };
     }
+
     default:
       return state;
   }
@@ -103,8 +122,6 @@ export default function Home() {
     <div className="flex h-screen overflow-hidden bg-[#0a0a0a]">
       <Sidebar
         currentView={state.currentView}
-        sprites={state.sprites}
-        spriteSheets={state.spriteSheets}
         onNavigate={(view) => dispatch({ type: 'SET_VIEW', payload: view })}
       />
 
@@ -121,6 +138,9 @@ export default function Home() {
               dispatch({ type: 'SET_VIEW', payload: 'gallery' });
             }}
           />
+        )}
+        {state.currentView === 'animate' && (
+          <AnimatePanel state={state} dispatch={dispatch} />
         )}
         {state.currentView === 'gallery' && (
           <Gallery
@@ -139,6 +159,11 @@ export default function Home() {
         <ChromaKeyModal
           sprite={chromaKeyTarget}
           onClose={() => setChromaKeyTarget(null)}
+          onAnimate={() => {
+            dispatch({ type: 'SET_SELECTED_FOR_REVIEW', payload: [chromaKeyTarget.id] });
+            setChromaKeyTarget(null);
+            dispatch({ type: 'SET_VIEW', payload: 'review' });
+          }}
         />
       )}
     </div>

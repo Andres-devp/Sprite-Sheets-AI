@@ -1,16 +1,16 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import type { GeneratedSprite, ChromaKeySettings } from '@/types';
+import type { Sprite, ChromaKeySettings } from '@/types';
 import { applyChromaKey } from '@/lib/chromaKey';
 
 interface ChromaKeyModalProps {
-  sprite: GeneratedSprite;
+  sprite: Sprite;
   onClose: () => void;
-  onProceedToAnimate: (sprite: GeneratedSprite, settings: ChromaKeySettings) => void;
+  onAnimate?: () => void;
 }
 
-export default function ChromaKeyModal({ sprite, onClose, onProceedToAnimate }: ChromaKeyModalProps) {
+export default function ChromaKeyModal({ sprite, onClose, onAnimate }: ChromaKeyModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tolerance, setTolerance] = useState(30);
   const [erosion, setErosion] = useState(0);
@@ -59,12 +59,7 @@ export default function ChromaKeyModal({ sprite, onClose, onProceedToAnimate }: 
   };
 
   const handleProceed = () => {
-    onProceedToAnimate(sprite, {
-      targetColor: [0, 255, 0],
-      tolerance,
-      erosion,
-      edgeSoftness,
-    });
+    onAnimate?.();
   };
 
   const sliders = [

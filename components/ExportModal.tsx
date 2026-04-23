@@ -1,42 +1,46 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
+import type { GalleryItem } from '@/types';
 
 interface ExportModalProps {
-  frames: string[];
-  selectedFrameIndices: number[];
-  defaultFilename: string;
+  items: GalleryItem[];
   onClose: () => void;
 }
 
-export default function ExportModal({
-  frames,
-  selectedFrameIndices,
-  defaultFilename,
-  onClose,
-}: ExportModalProps) {
-  const [filename, setFilename] = useState(defaultFilename || 'sprite-export');
+export default function ExportModal({ items, onClose }: ExportModalProps) {
+  const [folderNames, setFolderNames] = useState<string[]>(() =>
+    items.map((_, i) => `Image #${i + 1}`)
+  );
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingIdx !== null) editInputRef.current?.focus();
+  }, [editingIdx]);
 
   const handleDownload = async () => {
-    if (!filename.trim() || downloading) return;
+    if (downloading) return;
     setDownloading(true);
     try {
       const zip = new JSZip();
-      const folder = zip.folder(filename.trim()) ?? zip;
 
-      selectedFrameIndices.forEach((frameIdx, i) => {
-        const dataUrl = frames[frameIdx];
-        const base64 = dataUrl.split(',')[1];
-        folder.file(`frame_${String(i).padStart(3, '0')}.png`, base64, { base64: true });
+      items.forEach((item, i) => {
+        const folderName = folderNames[i].trim() || `Image #${i + 1}`;
+        const folder = zip.folder(folderName) ?? zip;
+
+        const ext = item.mimeType?.includes('png') ? 'png' : 'jpg';
+        const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'image';
+        folder.file(`${safeName}.${ext}`, item.imageBase64, { base64: true });
       });
 
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename.trim()}.zip`;
+      a.download = `sprites_export.zip`;
       a.click();
       URL.revokeObjectURL(url);
       onClose();
@@ -45,10 +49,8 @@ export default function ExportModal({
     }
   };
 
-  // Close on Escape
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
-    if (e.key === 'Enter' && filename.trim()) handleDownload();
   };
 
   return (
@@ -58,42 +60,89 @@ export default function ExportModal({
       onKeyDown={handleKeyDown}
     >
       <div
-        className="bg-[#1e1e1e] rounded-xl border border-[#2a2a2a] w-full max-w-sm p-6 shadow-2xl"
+        className="bg-[#1e1e1e] rounded-xl border border-[#2a2a2a] w-full max-w-md p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold text-white mb-5">Download Sprite Frames</h2>
-
-        <div className="mb-4">
-          <label className="block text-xs text-gray-400 mb-1.5">File / Folder Name</label>
-          <input
-            type="text"
-            value={filename}
-            onChange={(e) => setFilename(e.target.value)}
-            placeholder="e.g. warrior, skeleton, robot"
-            autoFocus
-            className="w-full bg-[#111] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
-          />
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-sm font-semibold text-white">Download Sprites</h2>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#3a3a3a] transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div className="bg-[#111] rounded-lg p-3 mb-5 border border-[#2a2a2a]">
-          <p className="text-xs text-gray-500 font-mono">
-            {filename.trim() || 'sprites'}/
-          </p>
-          {selectedFrameIndices.slice(0, 5).map((_, i) => (
-            <p key={i} className="text-xs text-gray-600 font-mono pl-3">
-              frame_{String(i).padStart(3, '0')}.png
-            </p>
-          ))}
-          {selectedFrameIndices.length > 5 && (
-            <p className="text-xs text-gray-700 font-mono pl-3">
-              … {selectedFrameIndices.length - 5} more
-            </p>
-          )}
-        </div>
-
-        <p className="text-xs text-gray-600 mb-5">
-          {selectedFrameIndices.length} PNG frame{selectedFrameIndices.length !== 1 ? 's' : ''} will be saved inside a ZIP archive.
+        <p className="text-xs text-gray-500 mb-3">
+          File Preview ({items.length} file{items.length !== 1 ? 's' : ''})
         </p>
+
+        <div className="bg-[#111] rounded-lg border border-[#2a2a2a] overflow-hidden mb-5 max-h-64 overflow-y-auto">
+          {items.map((item, i) => {
+            const folderName = folderNames[i].trim() || `Image #${i + 1}`;
+            const ext = item.mimeType?.includes('png') ? 'png' : 'jpg';
+            const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'image';
+            const isEditing = editingIdx === i;
+
+            return (
+              <div key={item.id}>
+                {/* Folder row */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-[#1e1e1e]">
+                  <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                  </svg>
+                  {isEditing ? (
+                    <input
+                      ref={editInputRef}
+                      value={folderNames[i]}
+                      onChange={(e) =>
+                        setFolderNames((prev) => {
+                          const next = [...prev];
+                          next[i] = e.target.value;
+                          return next;
+                        })
+                      }
+                      onBlur={() => setEditingIdx(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Escape') setEditingIdx(null);
+                        e.stopPropagation();
+                      }}
+                      className="flex-1 bg-[#1a1a1a] border border-blue-500 rounded px-1.5 py-0.5 text-xs text-gray-200 focus:outline-none min-w-0"
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-400 font-mono flex-1 truncate">
+                      {folderName}/
+                    </span>
+                  )}
+                  {!isEditing && (
+                    <button
+                      onClick={() => setEditingIdx(i)}
+                      className="text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {/* File row */}
+                <div className="flex items-center gap-2 px-3 py-1.5 pl-7 border-b border-[#1a1a1a]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${item.mimeType};base64,${item.imageBase64}`}
+                    alt={item.name}
+                    className="w-4 h-4 object-cover rounded flex-shrink-0"
+                  />
+                  <span className="text-xs text-gray-600 font-mono truncate">
+                    {safeName}.{ext}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         <div className="flex gap-3">
           <button
@@ -104,10 +153,10 @@ export default function ExportModal({
           </button>
           <button
             onClick={handleDownload}
-            disabled={downloading || !filename.trim()}
-            className="flex-1 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            disabled={downloading}
+            className="flex-1 py-2 text-sm bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#3a3a3a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
           >
-            {downloading ? 'Zipping…' : `Download ZIP (${selectedFrameIndices.length})`}
+            {downloading ? 'Zipping…' : `Download ZIP (${items.length})`}
           </button>
         </div>
       </div>

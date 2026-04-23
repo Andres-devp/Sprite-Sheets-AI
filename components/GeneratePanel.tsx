@@ -49,11 +49,13 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
         type: 'ADD_SPRITE',
         payload: {
           id: crypto.randomUUID(),
+          type: 'sprite',
           prompt: prompt.trim(),
           artStyle,
           cameraAngle,
           imageBase64: data.imageBase64,
           mimeType: data.mimeType,
+          seed: typeof data.seed === 'number' ? data.seed : undefined,
           createdAt: Date.now(),
           name: prompt.trim().slice(0, 30),
         },
@@ -88,7 +90,7 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
         </div>
         <h1 className="text-2xl font-bold text-white">Create Your Character</h1>
         <p className="text-gray-400 text-sm mt-1">
-          Describe your character and we&apos;ll generate a 4×4 sprite sheet ready for animation.
+          Describe your character and we&apos;ll generate a single sprite ready for animation.
         </p>
       </div>
 
@@ -175,10 +177,10 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            Generating sprite sheet… (may take up to 45s)
+            Generating sprite… (may take up to 45s)
           </>
         ) : (
-          'Generate Sprite Sheet'
+          'Generate Sprite'
         )}
       </button>
     </div>

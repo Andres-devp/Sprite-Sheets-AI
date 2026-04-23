@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import type { AppState, AppAction, Sprite, SpriteSheet, GalleryFilter, GalleryItem } from '@/types';
-import { extractFrames } from '@/lib/spriteExtract';
+import { useState } from 'react';
+import type { AppState, AppAction, Sprite, GalleryFilter, GalleryItem } from '@/types';
 import ExportModal from './ExportModal';
 
 interface GalleryProps {
@@ -12,41 +11,71 @@ interface GalleryProps {
   onSelectForReview: (ids: string[]) => void;
 }
 
-function AnimatedPreview({ sheet }: { sheet: SpriteSheet }) {
-  const [frames, setFrames] = useState<string[]>([]);
-  const [frameIdx, setFrameIdx] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    extractFrames(
-      `data:${sheet.mimeType};base64,${sheet.imageBase64}`,
-      sheet.cols,
-      sheet.rows
-    )
-      .then((f) => { if (!cancelled) setFrames(f); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [sheet.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (frames.length === 0) return;
-    const id = setInterval(() => setFrameIdx((i) => (i + 1) % frames.length), 120);
-    return () => clearInterval(id);
-  }, [frames.length]);
-
-  const src =
-    frames.length > 0
-      ? frames[frameIdx]
-      : `data:${sheet.mimeType};base64,${sheet.imageBase64}`;
-
+function ItemCard({
+  item,
+  isSelected,
+  hasSelected,
+  onToggle,
+  onDelete,
+  onClick,
+}: {
+  item: GalleryItem;
+  isSelected: boolean;
+  hasSelected: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+  onClick: () => void;
+}) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={sheet.name}
-      className="w-full h-full object-cover"
-      style={{ imageRendering: 'pixelated' }}
-    />
+    <div className="group relative">
+      <button
+        onClick={onToggle}
+        className={`absolute top-2 left-2 z-10 w-5 h-5 rounded border flex items-center justify-center transition-all ${
+          hasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        } ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-black/50 border-white/30 hover:border-white/60'}`}
+      >
+        {isSelected && (
+          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+
+      <button
+        onClick={onDelete}
+        className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
+      >
+        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div className={`rounded-xl overflow-hidden border-2 transition-all ${
+        isSelected ? 'border-blue-500' : 'border-transparent hover:border-[#333]'
+      }`}>
+        <div
+          className={`aspect-square overflow-hidden cursor-pointer ${
+            item.type === 'sprite' ? 'bg-[#00FF00]' : 'bg-[#0a0a0a]'
+          }`}
+          onClick={onClick}
+        >
+          {/* Spritesheets show as static full-sheet image — animation happens in step 3 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`data:${item.mimeType};base64,${item.imageBase64}`}
+            alt={item.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        <div className="bg-[#1a1a1a] px-2 py-1.5">
+          <p className="text-xs text-gray-300 truncate">{item.name}</p>
+          <p className="text-[10px] text-gray-600 truncate">
+            {item.type === 'sprite' ? item.artStyle : item.animationName}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -59,10 +88,11 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
   const allItems: GalleryItem[] = [...sortedSprites, ...sortedSheets].sort(
     (a, b) => b.createdAt - a.createdAt
   );
+  const recentItems = allItems.slice(0, 5);
 
   const filteredItems: GalleryItem[] = (() => {
     switch (state.galleryFilter) {
-      case 'sprites':     return sortedSprites;
+      case 'sprites':      return sortedSprites;
       case 'spritesheets': return sortedSheets;
       case 'animations':   return sortedSheets;
       default:             return allItems;
@@ -115,9 +145,7 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-bold text-white">Gallery</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              {allItems.length} item{allItems.length !== 1 ? 's' : ''}
-            </p>
+            <p className="text-gray-500 text-sm mt-0.5">Your generation history</p>
           </div>
           {hasSelected && (
             <button
@@ -128,6 +156,39 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
             </button>
           )}
         </div>
+
+        {/* Recent section */}
+        {recentItems.length > 0 && state.galleryFilter === 'all' && (
+          <div className="mb-8">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Recent</p>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {recentItems.map((item) => (
+                <div key={item.id} className="flex-shrink-0 w-24">
+                  <div
+                    className={`w-24 h-24 rounded-xl overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#444] transition-all ${
+                      item.type === 'sprite' ? 'bg-[#00FF00]' : 'bg-[#0a0a0a]'
+                    }`}
+                    onClick={() => {
+                      if (item.type === 'sprite') onRemoveBg(item);
+                      else {
+                        dispatch({ type: 'SET_SELECTED_SHEET', payload: item.id });
+                        dispatch({ type: 'SET_VIEW', payload: 'animate' });
+                      }
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`data:${item.mimeType};base64,${item.imageBase64}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-[10px] text-gray-500 truncate mt-1 text-center">{item.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="flex gap-1 mb-5 bg-[#111] rounded-lg p-1 w-fit">
@@ -186,75 +247,26 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
           <p className="text-gray-600 text-sm">Nothing here yet.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {filteredItems.map((item) => {
-              const isSelected = selected.has(item.id);
-              return (
-                <div key={item.id} className="group relative">
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleSelect(item.id)}
-                    className={`absolute top-2 left-2 z-10 w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                      hasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                    } ${isSelected ? 'bg-blue-600 border-blue-600' : 'bg-black/50 border-white/30 hover:border-white/60'}`}
-                  >
-                    {isSelected && (
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => {
-                      dispatch({ type: 'DELETE_ITEM', payload: item.id });
-                      setSelected((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
-                    }}
-                    className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-
-                  {/* Card */}
-                  <div className={`rounded-xl overflow-hidden border-2 transition-all ${
-                    isSelected ? 'border-blue-500' : 'border-transparent hover:border-[#333]'
-                  }`}>
-                    {/* Image */}
-                    <div
-                      className={`aspect-square overflow-hidden cursor-pointer ${
-                        item.type === 'sprite' ? 'bg-[#00FF00]' : 'checkerboard'
-                      }`}
-                      onClick={() => {
-                        if (item.type === 'sprite') onRemoveBg(item);
-                      }}
-                    >
-                      {item.type === 'sprite' ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`data:${item.mimeType};base64,${item.imageBase64}`}
-                          alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <AnimatedPreview sheet={item} />
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="bg-[#1a1a1a] px-2 py-1.5">
-                      <p className="text-xs text-gray-300 truncate">{item.name}</p>
-                      <p className="text-[10px] text-gray-600 truncate">
-                        {item.type === 'sprite'
-                          ? item.artStyle
-                          : item.animationName}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                isSelected={selected.has(item.id)}
+                hasSelected={hasSelected}
+                onToggle={() => toggleSelect(item.id)}
+                onDelete={() => {
+                  dispatch({ type: 'DELETE_ITEM', payload: item.id });
+                  setSelected((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
+                }}
+                onClick={() => {
+                  if (item.type === 'sprite') onRemoveBg(item);
+                  else {
+                    dispatch({ type: 'SET_SELECTED_SHEET', payload: item.id });
+                    dispatch({ type: 'SET_VIEW', payload: 'animate' });
+                  }
+                }}
+              />
+            ))}
           </div>
         )}
       </div>

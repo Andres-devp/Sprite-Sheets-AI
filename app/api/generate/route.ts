@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'HUGGINGFACE_API_KEY not configured on server' }, { status: 500 });
   }
 
+  const seed = Math.floor(Math.random() * 2_147_483_647);
+
   let body: { prompt?: string; artStyle?: string; cameraAngle?: string };
   try {
     body = await req.json();
@@ -59,9 +61,10 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       inputs: fullPrompt,
       parameters: {
-        num_inference_steps: 4, // FLUX-schnell is optimized for 1–4 steps
+        num_inference_steps: 4,
         width: 1024,
         height: 1024,
+        seed,
       },
     }),
   });
@@ -102,5 +105,5 @@ export async function POST(req: NextRequest) {
   const imageBuffer = await hfResponse.arrayBuffer();
   const imageBase64 = Buffer.from(imageBuffer).toString('base64');
 
-  return Response.json({ imageBase64, mimeType });
+  return Response.json({ imageBase64, mimeType, seed });
 }

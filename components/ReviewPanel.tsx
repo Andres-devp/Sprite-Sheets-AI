@@ -35,7 +35,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
     });
   };
 
-  const handleAnimate = async () => {
+  const handleGenerate = async () => {
     if (!animationDesc.trim() || selectedSprites.length === 0 || state.isAnimating) return;
 
     dispatch({ type: 'SET_ANIMATING', payload: true });
@@ -49,11 +49,14 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
             sourcePrompt: sprite.prompt,
             animationName: animationDesc.trim(),
             artStyle: sprite.artStyle,
-            cameraAngle: lockPerspective ? sprite.cameraAngle : sprite.cameraAngle,
+            cameraAngle: sprite.cameraAngle,
+            spriteImageBase64: sprite.imageBase64,
+            spriteMimeType: sprite.mimeType,
+            sourceSeed: sprite.seed,
           }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Animation failed');
+        if (!res.ok) throw new Error(data.error ?? 'Generation failed');
 
         dispatch({
           type: 'ADD_SPRITESHEET',
@@ -78,11 +81,9 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
 
     const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
     if (failed.length > 0) {
-      dispatch({ type: 'SET_ERROR', payload: failed[0].reason?.message ?? 'Some animations failed' });
-    } else {
-      dispatch({ type: 'SET_ANIMATING', payload: false });
-      dispatch({ type: 'SET_VIEW', payload: 'gallery' });
+      dispatch({ type: 'SET_ERROR', payload: failed[0].reason?.message ?? 'Some generations failed' });
     }
+    // page.tsx reducer navigates to 'animate' on ADD_SPRITESHEET — no explicit SET_VIEW needed
   };
 
   return (
@@ -91,7 +92,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
       <div className="flex items-center justify-center gap-3 mb-8">
         {[
           { num: 1, label: 'Character', done: true },
-          { num: 2, label: 'Review', active: true },
+          { num: 2, label: 'Sprite Sheet', active: true },
           { num: 3, label: 'Animate', active: false },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -116,42 +117,41 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
         ))}
       </div>
 
-      <h1 className="text-2xl font-bold text-white mb-1">Review &amp; Animate</h1>
-      <p className="text-gray-400 text-sm mb-8">Select images to animate with a shared animation prompt.</p>
+      <h1 className="text-2xl font-bold text-white mb-1">Generate Sprite Sheet</h1>
+      <p className="text-gray-400 text-sm mb-8">
+        Select your character sprite and describe the animation to generate a 4×4 sprite sheet.
+      </p>
 
       {/* Selected sprites */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Images to Animate</p>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Character Sprites</p>
           <span className="text-xs text-gray-600">{selectedSprites.length} / 10</span>
         </div>
         <div className="flex gap-3 flex-wrap">
           {selectedSprites.map((sprite) => (
-            <div
-              key={sprite.id}
-              className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#00FF00] border-2 border-blue-500"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`data:${sprite.mimeType};base64,${sprite.imageBase64}`}
-                alt={sprite.name}
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={() => removeFromSelection(sprite.id)}
-                className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <p className="absolute bottom-0 left-0 right-0 text-center text-[10px] text-white bg-black/60 py-0.5 truncate px-1">
-                {sprite.name}
-              </p>
+            <div key={sprite.id} className="flex flex-col items-center gap-1">
+              <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-[#00FF00] border-2 border-blue-500">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:${sprite.mimeType};base64,${sprite.imageBase64}`}
+                  alt={sprite.name}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => removeFromSelection(sprite.id)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-500 truncate w-24 text-center">{sprite.name}</p>
             </div>
           ))}
 
-          {/* Inventory button */}
+          {/* Add from gallery */}
           {selectedSprites.length < 10 && (
             <button
               onClick={onOpenSpritePicker}
@@ -160,7 +160,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
               </svg>
-              <span className="text-xs">Inventory</span>
+              <span className="text-xs">Gallery</span>
             </button>
           )}
         </div>
@@ -177,8 +177,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
               className="text-blue-400 hover:underline"
             >
               generate one first
-            </button>
-            .
+            </button>.
           </p>
         )}
       </div>
@@ -229,9 +228,9 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
         </div>
       )}
 
-      {/* Animate button */}
+      {/* Generate button */}
       <button
-        onClick={handleAnimate}
+        onClick={handleGenerate}
         disabled={!animationDesc.trim() || selectedSprites.length === 0 || state.isAnimating}
         className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
       >
@@ -244,7 +243,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
             Generating sprite sheet{selectedSprites.length > 1 ? 's' : ''}… (up to 45s)
           </>
         ) : (
-          `→ Animate ${selectedSprites.length > 0 ? selectedSprites.length : ''} Image${selectedSprites.length !== 1 ? 's' : ''}`
+          `Generate Sprite Sheet${selectedSprites.length > 1 ? 's' : ''} →`
         )}
       </button>
     </div>

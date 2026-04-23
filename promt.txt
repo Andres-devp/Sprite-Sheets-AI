@@ -1,0 +1,245 @@
+¡Perfecto! Aquí tienes el **prompt definitivo y completo**. He corregido la arquitectura para usar Next.js (como acordamos, para proteger tu API Key de Hugging Face) y he integrado toda la lógica de negocio, el procesamiento de imágenes (Chroma Key) y la extracción de video.
+
+Copia todo el texto que está dentro del bloque de código a continuación y pégalo directamente en la terminal donde estás corriendo Claude Code. 
+
+***
+
+```text
+Actúa como un desarrollador Full-Stack experto (Next.js, TypeScript, Tailwind). Necesito que construyas una aplicación web de generación y edición de sprite sheets lo más parecida posible a SpriteSheetsAI.com. A continuación te describo de forma exhaustiva la arquitectura, lógica de negocio, diseño y flujo de la app.
+
+---
+
+## STACK TÉCNICO DETECTADO
+
+- **Framework**: Next.js (App Router) con TypeScript
+- **Estilos**: Tailwind CSS con variables CSS personalizadas
+- **Fuente**: Inter (Google Fonts), sans-serif, 16px base
+- **UI Components**: Radix UI (Sliders, ScrollArea, etc.)
+- **Arquitectura**: Uso estratégico de 'use client' para componentes interactivos, manteniendo la estructura general con Server Components. Backend en Route Handlers (`app/api/`) para ocultar tokens de IA.
+- **Herramientas extra**: `jszip` (para exportar múltiples frames), manipulación nativa de `<canvas>` HTML5.
+
+---
+
+## 2. LÓGICA DE NEGOCIO Y BACKEND (CRÍTICO)
+
+La aplicación no es solo una interfaz estática; debe ser funcional. Implementa las siguientes mecánicas:
+
+### A. AI Generate (Hugging Face Img2Img)
+- El formulario del Paso 1 permite al usuario subir una "Imagen de Referencia" y escribir un prompt de texto.
+- Al presionar "Generate", el cliente debe convertir esa imagen a Base64 y enviarla junto con el texto a un endpoint interno: `/api/generate`.
+- **El Backend (`route.ts`)**: Recibe el Base64 y el prompt. Concatena el prompt con un system prompt oculto ("Estilo pixel art, cuadrícula, fondo verde croma #00FF00 sólido"). 
+- El servidor hace un `POST` seguro a la **Hugging Face Serverless Inference API** usando un modelo de `image-to-image` (Img2Img). Debe incluir el header de autorización leyendo `process.env.HF_TOKEN`. El resultado generado se devuelve al cliente para mostrarse en el Paso 2.
+
+### B. Remove Background (Chroma Key Local)
+- **NO uses APIs externas para esto.** - Toda la lógica debe ocurrir en el cliente usando HTML5 `<canvas>`.
+- Al abrir una imagen en el editor o en el panel de "Background Removal", dibuja la imagen en un canvas oculto, obtén el `ImageData`, y recorre los píxeles.
+- El slider de "Tolerance" debe calcular la diferencia matemática entre el color del píxel actual y el color objetivo (verde brillante `#00FF00` o negro, según se detecte o seleccione). Si la diferencia es menor a la tolerancia, cambia el canal Alpha de ese píxel a `0` (transparente) y redibuja la imagen.
+
+### C. Video to Sprite (Extracción)
+- Cuando el usuario sube un archivo de video local, reprodúcelo de forma oculta en el navegador.
+- Usa `requestAnimationFrame` o un bucle temporizado para capturar fotogramas dibujando el `<video>` en un `<canvas>` en intervalos específicos según el slider de "Frame Rate" (FPS).
+- **Exportar**: El botón de "Export" debe permitir compilar los fotogramas seleccionados en un archivo `.zip` usando la librería `jszip`, o generar una sola imagen PNG que acomode todos los fotogramas en una cuadrícula basándose en el slider de "Columns".
+
+---
+
+## 3. PALETA DE COLORES / DESIGN TOKENS (en globals.css)
+
+```css
+:root {
+  --background: hsl(220, 20%, 8%);         /* fondo principal: casi negro azulado */
+  --foreground: hsl(216, 20%, 90%);        /* texto principal: gris claro */
+  --card: hsl(220, 18%, 11%);              /* fondo de tarjetas */
+  --card-foreground: hsl(216, 20%, 90%);
+  --surface: hsl(220, 16%, 13%);           /* superficie elevada */
+  --surface-foreground: hsl(216, 20%, 90%);
+  --muted: hsl(220, 16%, 14%);             /* fondo de elementos secundarios */
+  --muted-foreground: hsl(218, 12%, 48%); /* texto secundario/placeholder */
+  --accent: hsl(217, 91%, 60%);            /* azul eléctrico — color de acción principal */
+  --accent-foreground: hsl(0, 0%, 100%);
+  --primary: hsl(216, 20%, 90%);
+  --primary-foreground: hsl(220, 20%, 6%);
+  --secondary: hsl(220, 16%, 14%);
+  --secondary-foreground: hsl(216, 20%, 90%);
+  --border: hsl(220, 14%, 18%);
+  --input: hsl(220, 14%, 18%);
+  --ring: hsl(217, 91%, 60%);
+  --radius: 0.75rem;
+  --destructive: hsl(0, 84%, 60%);         /* rojo para acciones destructivas */
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --popover: hsl(220, 18%, 11%);
+  --popover-foreground: hsl(216, 20%, 90%);
+
+  /* Sidebar */
+  --sidebar-background: hsl(222, 22%, 5%); 
+  --sidebar-foreground: hsl(216, 20%, 90%);
+  --sidebar-border: hsl(220, 14%, 14%);
+  --sidebar-accent: hsl(220, 18%, 10%);
+  --sidebar-accent-foreground: hsl(216, 20%, 90%);
+  --sidebar-primary: hsl(217, 91%, 60%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-ring: hsl(217, 91%, 60%);
+
+  /* Checkerboard (para fondos transparentes) */
+  --checkerboard-light: hsl(220, 14%, 16%);
+  --checkerboard-dark: hsl(220, 16%, 10%);
+}
+```
+
+---
+
+## 4. LAYOUT GENERAL
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  TOPBAR (solo en Video to Sprite: créditos + theme toggle) │
+├──────────────┬──────────────────────────┬──────────────────┤
+│   LEFT       │                          │   RIGHT          │
+│   SIDEBAR    │    MAIN CONTENT          │   SIDEBAR        │
+│   (w-60)     │    (flex-1)              │   (w-72)         │
+│              │                          │  (solo en        │
+│  bg-sidebar  │    overflow-y-auto       │  Video to        │
+│              │                          │  Sprite y en     │
+│              │                          │  Video result)   │
+├──────────────┴──────────────────────────┴──────────────────┤
+│              USER PROFILE (bottom of left sidebar)         │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Layout raíz** (`h-screen flex flex-col bg-background overflow-hidden`):
+- Dentro: `flex flex-1 overflow-hidden`
+  - LEFT SIDEBAR: `aside.flex.flex-col.bg-sidebar.border-r.border-sidebar-border.h-full.transition-all.duration-300.w-60`
+  - MAIN WRAPPER: `div.flex-1.flex.flex-col`
+    - TOPBAR (header): solo visible en algunas vistas
+    - MAIN: `main.flex-1.overflow-y-auto`
+  - RIGHT SIDEBAR (solo en Video to Sprite): `aside.w-72.border-l.border-border.bg-card.overflow-y-auto.shrink-0`
+
+---
+
+## 5. LEFT SIDEBAR — Estructura detallada
+
+```
+aside (bg-sidebar, w-60, border-r border-sidebar-border)
+├── div (flex items-center justify-between p-4 border-b border-sidebar-border)
+│   ├── div (flex items-center gap-2)
+│   │   ├── img [logo 32x32px]  "S" logo cuadrado azul
+│   │   └── span (font-semibold text-sidebar-foreground) "Sprite Sheets AI"
+│   └── button [icono colapsar sidebar, rounded-md]
+│
+├── div (px-3 pt-3 space-y-1) — NAV ITEMS
+│   ├── button.w-full (active: bg-accent text-accent-foreground; inactive: hover:bg-sidebar-accent)
+│   │   ├── svg [icono Video]
+│   │   └── span "Video to Sprite"
+│   ├── button.w-full (active: bg-accent text-accent-foreground)
+│   │   ├── svg [icono sparkles/AI]
+│   │   └── span "AI Generate"
+│   └── button.w-full
+│       ├── svg [icono grid]
+│       └── span "Gallery"
+│
+├── div (mt-3 flex-1 min-h-0 flex flex-col) — RECENT SECTION
+│   ├── p (text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2.5) "Recent"
+│   └── ScrollArea (h-full, px-3)
+│       └── grid.grid-cols-2.gap-1.5.pb-2
+│           └── button (group, aspect-square, rounded-md, overflow-hidden, bg-muted)
+│               ├── img [thumbnail del sprite sheet]
+│               └── div (position absolute bottom, bg-black/60, text-white text-[10px])
+│                   "12f · 512px"
+│
+└── div (p-3 border-t border-sidebar-border mt-auto) — USER PROFILE
+    └── button (w-full, flex items-center gap-2.5, p-2, rounded-md, hover:bg-sidebar-accent)
+        ├── div (w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold)
+        │   [Inicial del usuario]
+        ├── div (flex-1 text-left min-w-0)
+        │   ├── p (text-sm font-medium text-sidebar-foreground truncate) "Nombre Usuario"
+        │   └── p (text-xs text-muted-foreground capitalize) "free"
+        └── svg [chevron icon]
+```
+
+---
+
+## 6. VISTAS PRINCIPALES
+
+### VISTA 1: AI GENERATE (Flujo de 3 pasos)
+**Step 1: Create Your Character**
+- Stepper superior (1. Character, 2. Review, 3. Animate).
+- Tabs para "Upload Image" (muestra dropzone) o "Describe" (muestra Textarea).
+- Quick Prompts (botones estilo ghost pill: Skeleton warrior, Pixel robot...).
+- Opciones estilo Pill seleccionables para 'Art Style' (16-Bit Pixel seleccionado por defecto) y 'Camera Angle' (Front por defecto).
+- Botón grande "Generate Character".
+
+**Step 2: Review & Animate**
+- Título principal "Review & Animate" y subtítulo: "Select images to animate with a shared animation prompt."
+- **Sección 'Images to Animate':** Un contenedor que muestra las miniaturas de los personajes generados (fondo verde croma). Cada miniatura seleccionada tiene un botón 'x' para removerla. A su lado, incluye dos botones estilo 'dashed' (borde punteado): "Inventory" (icono de carpeta) y "Upload" (icono de subida).
+- **Sección 'Animation Description':** Un `<textarea>` amplio para escribir el prompt de la animación compartida (placeholder: "e.g. walking cycle, idle breathing, sword attack, jumping...").
+- **Pills de sugerencias:** Debajo del textarea, botones tipo pill redondeados: "idle breathing", "walk cycle", "sword attack", "jump", "run cycle", "dance".
+- **Controles adicionales:** Un toggle switch para "Lock Perspective" (con icono de información `i`). Texto informativo de estilo y costo (ej. "16-Bit Pixel • 130 credits total").
+- **Acciones:** Un botón primario gigante azul (`bg-accent`) "-> Animate 1 Image", acompañado a la derecha por dos botones cuadrados secundarios (iconos de Refresh y Edit).
+
+**Step 3: Animating Characters**
+- Esta vista tiene dos estados secuenciales:
+  1. **Estado 'Processing':** Título "Animating Characters", subtítulo "0 of 1 complete — processing... You can navigate away". La tarjeta de la imagen seleccionada se muestra con un indicador de carga (spinner) superpuesto en la esquina superior derecha. Abajo, un botón fantasma "Start Over".
+  2. **Estado 'Completed':** El subtítulo cambia a "1 of 1 completed". La tarjeta de la imagen ahora tiene un checkmark azul en la esquina superior derecha y un banner inferior azul adherido a la tarjeta que dice "Open in Editor ->".
+- **Panel de Extracción (Aparece en estado Completed):**
+  - Un bloque con fondo oscuro (`bg-card`/`bg-muted`) que contiene 3 selectores (dropdowns): **FRAME SIZE** (ej. 512x512px), **FPS** (ej. 12 fps) y **COLUMNS** (ej. 6 cols).
+  - Botón gigante azul: "Extract All as Sprite Sheets (1)" con un icono de cuadrícula.
+  - Texto de ayuda: "Creates sprite sheets with auto background removal & auto-crop. Edit individually in Gallery -> Sprite Sheets."
+  - Botón fantasma inferior: "Start New Batch".
+- **Modal 'Label This Animation':** Un cuadro de diálogo (Dialog) que se usa para nombrar la animación. Incluye el título "Name this animation in 1-3 words", un input de texto, pills de sugerencias rápidas debajo y un botón blanco "Save" alineado a la derecha.
+
+### VISTA 2: VIDEO TO SPRITE
+- **Main Area**: Muestra un dropzone para MP4 si está vacío. Si tiene video, muestra un grid con las miniaturas de los fotogramas extraídos seleccionables, un botón "Re-extract" y controles "Export X Frames" o "Update".
+- **Right Sidebar**: 
+  - Sección BACKGROUND REMOVAL con el slider de Tolerance para el Chroma Key local.
+  - Sección REFINEMENT (Erosion, Edge Softness).
+  - Sección FRAMING (Frame rate, grid de botones para resoluciones, columnas).
+
+### VISTA 3: GALLERY
+- Título y filtros superiores estilo pill (All, Sprites, Animations).
+- Grid responsivo de tarjetas cuadradas (`bg-checkerboard`) con miniaturas de proyectos pasados.
+- Modal al hacer click en una imagen que muestra opciones detalladas: "Open in Editor", "Download", "Delete".
+
+---
+
+## 7. COMPONENTES Y UTILIDADES
+
+**Button variants:**
+- **Primary**: `bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl px-4 py-2`
+- **Secondary**: `bg-transparent border border-border hover:bg-muted rounded-xl px-4 py-2`
+- **Destructive**: `bg-destructive/10 text-destructive border border-destructive/20`
+
+**Fondo checkerboard CSS** (para zonas de lienzo y previsualización):
+```css
+.bg-checkerboard {
+  background-image: 
+    linear-gradient(45deg, var(--checkerboard-dark) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checkerboard-dark) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checkerboard-dark) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checkerboard-dark) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: var(--checkerboard-light);
+}
+```
+
+Implementa la estructura de carpetas, los componentes modulares y el Route Handler de Hugging Face asegurando que el diseño sea idéntico al solicitado y la lógica sea completamente funcional.
+
+## LÓGICA DE NEGOCIO Y BACKEND (MUY IMPORTANTE)
+
+Además de la UI, debes implementar la funcionalidad real usando estas tecnologías:
+
+1. **AI Generate (Paso 1 y 2):** - El botón "Generate" debe enviar la Imagen de Referencia (en Base64) y el Prompt de texto a un Route Handler de Next.js (`/app/api/generate/route.ts`).
+   - El Route Handler debe hacer un POST seguro a la API de Inferencia gratuita de Hugging Face usando un modelo Image-to-Image (Img2Img) para generar el sprite manteniendo la silueta original. El token de Hugging Face debe estar en el `.env.local`.
+
+2. **Remove Background (Chroma Key Local):**
+   - La lógica para quitar el fondo verde/negro NO debe usar una API externa. 
+   - Debes implementarla 100% en el cliente (Navegador) usando el API de `<canvas>` de HTML5. El slider de "Tolerance" debe recalcular en tiempo real qué píxeles se vuelven transparentes modificando el canal Alpha del `ImageData`.
+
+3. **Video to Sprite (Extracción):**
+   - Para extraer los frames del video subido, utiliza una solución local en el cliente si es posible (dibujando el `<video>` en un `<canvas>` en intervalos específicos según los FPS seleccionados) o integra una librería ligera para muestreo. 
+   - El botón "Update" debe recalcular la vista previa, y "Export" debe generar un archivo .ZIP (usando jszip o similar) o ensamblar los frames en una sola cuadrícula PNG para descargar.
+
+```
+---
+
+## REGLAS DE NAVEGACIÓN Y ESTADO (INTERACCIONES CLAVE)
+- **Interacción del Historial (Recent):** Cuando el usuario hace click en CUALQUIERA de las tarjetas/miniaturas dentro de la sección "Recent" en el Left Sidebar, la aplicación debe cargar ese asset y redirigir al usuario INMEDIATAMENTE a la vista de **"Video to Sprite"** (el editor principal mostrado en la Vista 2), cargando los frames en el grid central listos para visualizar, re-extraer o exportar.
