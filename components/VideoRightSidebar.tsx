@@ -160,41 +160,46 @@ export default function VideoRightSidebar({
         </div>
       </section>
 
-      {/* Export */}
-      <section className="mt-auto">
+      {/* Export Settings */}
+      <section>
         <p
-          className="text-[10px] font-medium uppercase tracking-wider mb-2"
+          className="text-[10px] font-medium uppercase tracking-wider mb-3"
           style={{ color: 'var(--muted-foreground)' }}
         >
-          Export
+          Export Settings
         </p>
-        <p className="text-xs mb-3" style={{ color: 'var(--muted-foreground)' }}>
+
+        {/* Columns */}
+        <div>
+          <div className="flex justify-between mb-1">
+            <span className="text-xs" style={{ color: 'var(--foreground)' }}>Columns</span>
+            <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>{cols}</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={12}
+            value={cols}
+            onChange={(e) => onColsChange(Number(e.target.value))}
+            className="w-full cursor-pointer accent-blue-500"
+          />
+          <div
+            className="flex justify-between text-[10px] mt-0.5"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            <span>1</span>
+            <span>12</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Status */}
+      <section className="mt-auto">
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
           {hasFrames
             ? `${selectedFrames} / ${totalFrames} frames selected`
             : 'No frames loaded'}
         </p>
-        <div className="space-y-2">
-          <button
-            onClick={onExportZip}
-            disabled={!hasFrames || selectedFrames === 0 || isExporting}
-            className="w-full py-2.5 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
-          >
-            {isExporting ? 'Exporting…' : `Export ${selectedFrames || ''} as ZIP`}
-          </button>
-          <button
-            onClick={onExportGrid}
-            disabled={!hasFrames || selectedFrames === 0 || isExporting}
-            className="w-full py-2.5 text-sm font-medium rounded-xl border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: 'transparent',
-              color: 'var(--foreground)',
-              borderColor: 'var(--border)',
-            }}
-          >
-            Export as PNG Grid
-          </button>
-        </div>
       </section>
     </aside>
   );

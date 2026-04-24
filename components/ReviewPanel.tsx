@@ -92,8 +92,8 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
       <div className="flex items-center justify-center gap-3 mb-8">
         {[
           { num: 1, label: 'Character', done: true },
-          { num: 2, label: 'Sprite Sheet', active: true },
-          { num: 3, label: 'Animate', active: false },
+          { num: 2, label: 'Review & Animate', active: true },
+          { num: 3, label: 'Extract', active: false },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
             {i > 0 && <div className="w-10 h-px bg-[#2a2a2a]" />}
@@ -117,9 +117,9 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
         ))}
       </div>
 
-      <h1 className="text-2xl font-bold text-white mb-1">Generate Sprite Sheet</h1>
+      <h1 className="text-2xl font-bold text-white mb-1">Review & Animate</h1>
       <p className="text-gray-400 text-sm mb-8">
-        Select your character sprite and describe the animation to generate a 4×4 sprite sheet.
+        Confirm your character and describe the animation to generate a sprite sheet.
       </p>
 
       {/* Selected sprites */}
@@ -243,7 +243,7 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker }: Rev
             Generating sprite sheet{selectedSprites.length > 1 ? 's' : ''}… (up to 45s)
           </>
         ) : (
-          `Generate Sprite Sheet${selectedSprites.length > 1 ? 's' : ''} →`
+          `Animate ${selectedSprites.length} Image${selectedSprites.length > 1 ? 's' : ''} →`
         )}
       </button>
     </div>

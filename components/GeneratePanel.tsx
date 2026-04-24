@@ -73,7 +73,7 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
       {/* Step header */}
       <div className="mb-8">
         <div className="flex items-center gap-1 mb-6">
-          {['1 Character', '2 Review', '3 Animate'].map((step, i) => (
+          {['1 Character', '2 Review & Animate', '3 Extract'].map((step, i) => (
             <div key={i} className="flex items-center gap-1">
               {i > 0 && <div className="w-6 h-px bg-[#2a2a2a] mx-1" />}
               <span

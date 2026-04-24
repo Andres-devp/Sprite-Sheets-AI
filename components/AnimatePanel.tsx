@@ -14,13 +14,26 @@ interface AnimatePanelProps {
 export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
   const sheet = state.spriteSheets.find((s) => s.id === state.selectedSheetId) ?? null;
 
+  // Processing state: true while user is on review panel and clicked "Animate",
+  // before the ADD_SPRITESHEET action resolves with the generated sheet.
+  const [isProcessing, setIsProcessing] = useState(false);
   const [frames, setFrames] = useState<string[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [fps, setFps] = useState(8);
+  const [fps, setFps] = useState(12);
   const [removeGreen, setRemoveGreen] = useState(true);
   const [exporting, setExporting] = useState(false);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Detect transition from review → animate when isAnimating just went true
+  // and no sheet has arrived yet. Show processing UI during this window.
+  useEffect(() => {
+    if (state.isAnimating && !sheet) {
+      setIsProcessing(true);
+    } else {
+      setIsProcessing(false);
+    }
+  }, [state.isAnimating, sheet]);
 
   // Extract frames whenever sheet or removeGreen changes
   useEffect(() => {
@@ -51,7 +64,7 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
 
         const processed = await Promise.all(
           rawFrames.map(
-            (frameUrl) =>
+            (dataUrl) =>
               new Promise<string>((resolve) => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d')!;
@@ -68,7 +81,7 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
                   });
                   resolve(canvas.toDataURL('image/png'));
                 };
-                img.src = frameUrl;
+                img.src = dataUrl;
               })
           )
         );
@@ -84,7 +97,7 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [sheet?.id, removeGreen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sheet?.id, removeGreen]);
 
   // Animation preview loop
   useEffect(() => {
@@ -148,31 +161,144 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
     }
   };
 
+  // ── Processing state ─────────────────────────────────────────────────────
+  if (isProcessing) {
+    const sourceSprite = state.sprites.find((s) => state.selectedForReview.includes(s.id));
+
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          {/* Source sprite preview with spinner */}
+          <div
+            className="w-48 h-48 rounded-2xl overflow-hidden mx-auto mb-6 checkerboard relative"
+          >
+            {sourceSprite ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:${sourceSprite.mimeType};base64,${sourceSprite.imageBase64}`}
+                  alt={sourceSprite.name}
+                  className="w-full h-full object-contain"
+                />
+                {/* Spinner overlay */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                >
+                  <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      style={{ color: 'var(--accent)' }}
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      style={{ color: 'var(--accent)' }}
+                    />
+                  </svg>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--muted)' }}>
+                <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    style={{ color: 'var(--accent)' }}
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    style={{ color: 'var(--accent)' }}
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          <h2
+            className="text-lg font-semibold mb-1"
+            style={{ color: 'var(--foreground)' }}
+          >
+            Animating Characters
+          </h2>
+          <p className="text-sm mb-1" style={{ color: 'var(--muted-foreground)' }}>
+            0 of 1 complete — processing…
+          </p>
+          <p className="text-xs mb-8" style={{ color: 'var(--muted-foreground)' }}>
+            You can navigate away
+          </p>
+
+          <button
+            onClick={() => dispatch({ type: 'SET_VIEW', payload: 'review' })}
+            className="text-xs px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}
+          >
+            ← Start Over
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No sheet selected ────────────────────────────────────────────────────
   if (!sheet) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6">
-        <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-4">
-          <svg className="w-7 h-7 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+          style={{ backgroundColor: 'var(--muted)' }}
+        >
+          <svg
+            className="w-7 h-7"
+            style={{ color: 'var(--muted-foreground)' }}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </div>
-        <p className="text-gray-400 text-sm font-medium mb-1">No sprite sheet selected</p>
-        <p className="text-gray-600 text-xs mb-4">
-          Generate a sprite sheet first in the Sprite Sheet step
+        <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+          No sprite sheet selected
+        </p>
+        <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+          Generate a sprite sheet first in the Review & Animate step
         </p>
         <div className="flex gap-3">
           <button
             onClick={() => dispatch({ type: 'SET_VIEW', payload: 'review' })}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
           >
-            Generate Sprite Sheet
+            Review & Animate
           </button>
           <button
             onClick={() => dispatch({ type: 'SET_VIEW', payload: 'gallery' })}
-            className="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}
           >
             Open Gallery
           </button>
@@ -181,6 +307,7 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
     );
   }
 
+  // ── Main extract UI ───────────────────────────────────────────────────────
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: frame grid */}
@@ -190,24 +317,47 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
           <div className="flex items-center justify-center gap-3 mb-6">
             {[
               { num: 1, label: 'Character', done: true },
-              { num: 2, label: 'Sprite Sheet', done: true },
-              { num: 3, label: 'Animate', active: true },
+              { num: 2, label: 'Review & Animate', done: true },
+              { num: 3, label: 'Extract', active: true },
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-2">
-                {i > 0 && <div className="w-10 h-px bg-[#2a2a2a]" />}
+                {i > 0 && (
+                  <div
+                    className="w-10 h-px"
+                    style={{ backgroundColor: 'var(--border)' }}
+                  />
+                )}
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                      step.done
-                        ? 'bg-blue-600 text-white'
-                        : step.active
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-[#2a2a2a] text-gray-500'
-                    }`}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{
+                      backgroundColor:
+                        'done' in step && step.done
+                          ? 'var(--accent)'
+                          : 'active' in step && step.active
+                          ? 'var(--accent)'
+                          : 'var(--muted)',
+                      color:
+                        'done' in step && step.done
+                          ? 'var(--accent-foreground)'
+                          : 'active' in step && step.active
+                          ? 'var(--accent-foreground)'
+                          : 'var(--muted-foreground)',
+                    }}
                   >
-                    {step.done ? '✓' : step.num}
+                    {'done' in step && step.done ? '✓' : step.num}
                   </div>
-                  <span className={`text-sm ${'active' in step && step.active ? 'text-white font-medium' : 'text-gray-500'}`}>
+                  <span
+                    className="text-sm"
+                    style={{
+                      color:
+                        'active' in step && step.active
+                          ? 'var(--foreground)'
+                          : 'var(--muted-foreground)',
+                      fontWeight:
+                        'active' in step && step.active ? '500' : '400',
+                    }}
+                  >
                     {step.label}
                   </span>
                 </div>
@@ -217,14 +367,24 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
 
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-white">Animate</h1>
-              <p className="text-gray-500 text-sm mt-0.5">
-                {sheet.name} — {sheet.animationName} — click frames to select
+              <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                Extract
+              </h1>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                {sheet.animationName} — {sheet.name} — select frames to export
               </p>
             </div>
             <button
               onClick={() => dispatch({ type: 'SET_VIEW', payload: 'review' })}
-              className="flex-shrink-0 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              className="flex-shrink-0 text-xs transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
+              onMouseEnter={(e) =>
+                ((e.target as HTMLElement).style.color = 'var(--foreground)')
+              }
+              onMouseLeave={(e) =>
+                ((e.target as HTMLElement).style.color =
+                  'var(--muted-foreground)')
+              }
             >
               ← Regenerate
             </button>
@@ -236,23 +396,45 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
           <label className="flex items-center gap-2 cursor-pointer">
             <button
               onClick={() => setRemoveGreen((v) => !v)}
-              className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ${removeGreen ? 'bg-blue-600' : 'bg-[#2a2a2a]'}`}
+              className="w-9 h-5 rounded-full transition-colors flex-shrink-0"
+              style={{
+                backgroundColor: removeGreen ? 'var(--accent)' : 'var(--muted)',
+              }}
             >
-              <div className={`w-4 h-4 bg-white rounded-full m-0.5 transition-transform ${removeGreen ? 'translate-x-4' : ''}`} />
+              <div
+                className="w-4 h-4 bg-white rounded-full m-0.5 transition-transform"
+                style={{ transform: removeGreen ? 'translateX(16px)' : '' }}
+              />
             </button>
-            <span className="text-xs text-gray-400">Remove green bg</span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              Remove green bg
+            </span>
           </label>
 
           <button
             onClick={() => setSelectedIndices(frames.map((_, i) => i))}
-            className="text-xs text-gray-500 hover:text-gray-200 transition-colors"
+            className="text-xs transition-colors"
+            style={{ color: 'var(--muted-foreground)' }}
+            onMouseEnter={(e) =>
+              ((e.target as HTMLElement).style.color = 'var(--foreground)')
+            }
+            onMouseLeave={(e) =>
+              ((e.target as HTMLElement).style.color = 'var(--muted-foreground)')
+            }
             disabled={frames.length === 0}
           >
             Select All
           </button>
           <button
             onClick={() => setSelectedIndices([])}
-            className="text-xs text-gray-500 hover:text-gray-200 transition-colors"
+            className="text-xs transition-colors"
+            style={{ color: 'var(--muted-foreground)' }}
+            onMouseEnter={(e) =>
+              ((e.target as HTMLElement).style.color = 'var(--foreground)')
+            }
+            onMouseLeave={(e) =>
+              ((e.target as HTMLElement).style.color = 'var(--muted-foreground)')
+            }
             disabled={selectedIndices.length === 0}
           >
             Clear
@@ -261,11 +443,27 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
 
         {/* Frame grid */}
         {isExtracting ? (
-          <div className="flex items-center justify-center h-48 text-gray-500 text-sm">
+          <div
+            className="flex items-center justify-center h-48 text-sm"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             <div className="flex items-center gap-2">
               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  style={{ color: 'var(--accent)' }}
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  style={{ color: 'var(--accent)' }}
+                />
               </svg>
               Extracting {sheet.cols * sheet.rows} frames…
             </div>
@@ -282,11 +480,13 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
                 <button
                   key={i}
                   onClick={() => toggleFrame(i)}
-                  className={`relative aspect-square rounded-lg overflow-hidden checkerboard transition-all ${
-                    isSelected
-                      ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-[#0a0a0a]'
-                      : 'ring-1 ring-[#2a2a2a] hover:ring-gray-500'
-                  }`}
+                  className="relative aspect-square rounded-lg overflow-hidden checkerboard transition-all"
+                  style={{
+                    outline: isSelected
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border)',
+                    outlineOffset: '2px',
+                  }}
                   title={`Frame ${i + 1}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -297,11 +497,20 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
                     style={{ imageRendering: 'pixelated' }}
                   />
                   {isSelected && (
-                    <div className="absolute top-1 right-1 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-[8px] font-bold text-white">
+                    <div
+                      className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                      style={{
+                        backgroundColor: 'var(--accent)',
+                        color: 'var(--accent-foreground)',
+                      }}
+                    >
                       {selOrder + 1}
                     </div>
                   )}
-                  <div className="absolute bottom-0.5 left-0.5 text-[9px] text-gray-600 bg-black/40 rounded px-0.5">
+                  <div
+                    className="absolute bottom-0.5 left-0.5 text-[9px] rounded px-0.5"
+                    style={{ color: '#aaa', backgroundColor: 'rgba(0,0,0,0.5)' }}
+                  >
                     {i + 1}
                   </div>
                 </button>
@@ -312,15 +521,27 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
       </div>
 
       {/* Right: preview + controls */}
-      <div className="w-64 flex-shrink-0 bg-[#111] border-l border-[#2a2a2a] px-4 py-6 flex flex-col gap-5 overflow-y-auto">
-
-        {/* Reference sprite */}
+      <div
+        className="w-64 flex-shrink-0 px-4 py-6 flex flex-col gap-5 overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--card)',
+          borderLeft: '1px solid var(--border)',
+        }}
+      >
+        {/* Source Character */}
         {(() => {
           const sourceSprite = state.sprites.find((s) => s.name === sheet.name);
           return sourceSprite ? (
             <div>
-              <p className="text-xs font-medium text-gray-400 mb-2">Source Character</p>
-              <div className="w-full aspect-square rounded-lg overflow-hidden bg-[#00FF00]">
+              <p
+                className="text-xs font-medium mb-2"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                Source Character
+              </p>
+              <div
+                className="w-full aspect-square rounded-lg overflow-hidden checkerboard"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`data:${sourceSprite.mimeType};base64,${sourceSprite.imageBase64}`}
@@ -334,10 +555,19 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
 
         {/* Animation preview */}
         <div>
-          <p className="text-xs font-medium text-gray-400 mb-2">
-            Preview {selectedIndices.length > 0 ? `(${selectedIndices.length} frames)` : ''}
+          <p
+            className="text-xs font-medium mb-2"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            Preview
+            {selectedIndices.length > 0
+              ? ` (${selectedIndices.length} frames)`
+              : ''}
           </p>
-          <div className="aspect-square bg-[#0a0a0a] rounded-lg overflow-hidden checkerboard flex items-center justify-center">
+          <div
+            className="aspect-square rounded-lg overflow-hidden checkerboard flex items-center justify-center"
+            style={{ backgroundColor: 'var(--background)' }}
+          >
             {selectedIndices.length > 0 ? (
               <canvas
                 ref={previewCanvasRef}
@@ -345,7 +575,12 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
                 style={{ imageRendering: 'pixelated' }}
               />
             ) : (
-              <p className="text-xs text-gray-600 text-center px-3">Select frames to preview</p>
+              <p
+                className="text-xs text-center px-3"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                Select frames to preview
+              </p>
             )}
           </div>
         </div>
@@ -353,8 +588,12 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
         {/* FPS */}
         <div>
           <div className="flex justify-between items-center mb-1">
-            <p className="text-xs text-gray-400">Speed (FPS)</p>
-            <span className="text-xs text-gray-600 font-mono">{fps}</span>
+            <p className="text-xs" style={{ color: 'var(--foreground)' }}>
+              Speed (FPS)
+            </p>
+            <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
+              {fps}
+            </span>
           </div>
           <input
             type="range"
@@ -362,15 +601,18 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
             max={30}
             value={fps}
             onChange={(e) => setFps(Number(e.target.value))}
-            className="w-full accent-blue-500 cursor-pointer"
+            className="w-full cursor-pointer accent-blue-500"
           />
-          <div className="flex justify-between text-xs text-gray-700 mt-0.5">
+          <div
+            className="flex justify-between text-xs mt-0.5"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             <span>1</span>
             <span>30</span>
           </div>
         </div>
 
-        <p className="text-xs text-gray-600">
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
           {selectedIndices.length} / {frames.length} frames selected
         </p>
 
@@ -379,7 +621,11 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
           <button
             onClick={handleExport}
             disabled={selectedIndices.length === 0 || exporting}
-            className="w-full py-2.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            className="w-full py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              backgroundColor: 'var(--accent)',
+              color: 'var(--accent-foreground)',
+            }}
           >
             {exporting
               ? 'Exporting…'
@@ -387,7 +633,11 @@ export default function AnimatePanel({ state, dispatch }: AnimatePanelProps) {
           </button>
           <button
             onClick={() => dispatch({ type: 'SET_VIEW', payload: 'gallery' })}
-            className="w-full py-2 text-xs bg-[#2a2a2a] hover:bg-[#333] text-gray-400 rounded-lg transition-colors"
+            className="w-full py-2 text-xs rounded-lg transition-colors"
+            style={{
+              backgroundColor: 'var(--muted)',
+              color: 'var(--muted-foreground)',
+            }}
           >
             View Gallery
           </button>

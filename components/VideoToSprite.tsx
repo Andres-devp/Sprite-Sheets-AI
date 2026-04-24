@@ -230,18 +230,16 @@ export default function VideoToSprite({
 
   // ── Has frames ────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 overflow-auto px-6 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 gap-4">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold truncate" style={{ color: 'var(--foreground)' }}>
-            {videoFile.name}
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-            {frames.length} frames extracted · {selectedIndices.length} selected
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
+    <div className="flex-1 flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 pt-4 pb-2 gap-4 shrink-0">
+        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+          <span className="font-medium" style={{ color: 'var(--foreground)' }}>
+            {selectedIndices.length}
+          </span>
+          /{frames.length} frames selected
+        </p>
+        <div className="flex gap-2">
           <button
             onClick={() => setSelectedIndices(frames.map((_, i) => i))}
             className="text-xs px-3 py-1.5 rounded-lg transition-colors"
@@ -258,68 +256,106 @@ export default function VideoToSprite({
           </button>
           <button
             onClick={() => runExtraction(videoFile)}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+            className="text-xs px-3 py-1.5 rounded-lg transition-colors"
             style={{
-              backgroundColor: 'var(--secondary)',
-              color: 'var(--secondary-foreground)',
-              border: '1px solid var(--border)',
+              backgroundColor: 'var(--muted)',
+              color: 'var(--muted-foreground)',
             }}
           >
             Re-extract
-          </button>
-          <button
-            onClick={() => { setVideoFile(null); setFrames([]); setSelectedIndices([]); }}
-            className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-            style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}
-          >
-            Change Video
           </button>
         </div>
       </div>
 
       {/* Frame grid */}
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className="flex-1 overflow-auto px-6 pb-2"
       >
-        {frames.map((frame, i) => {
-          const isSelected = selectedIndices.includes(i);
-          const order = selectedIndices.indexOf(i);
-          return (
-            <button
-              key={i}
-              onClick={() => toggleFrame(i)}
-              className="relative aspect-square rounded-lg overflow-hidden checkerboard transition-all"
-              style={{
-                outline: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
-                outlineOffset: isSelected ? '2px' : '0',
-              }}
-              title={`Frame ${i + 1}`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={frame}
-                alt={`Frame ${i + 1}`}
-                className="w-full h-full object-contain"
-                style={{ imageRendering: 'pixelated' }}
-              />
-              {isSelected && (
-                <div
-                  className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                  style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
-                >
-                  {order + 1}
-                </div>
-              )}
-              <div
-                className="absolute bottom-0.5 left-0.5 text-[9px] rounded px-0.5"
-                style={{ color: '#aaa', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        >
+          {frames.map((frame, i) => {
+            const isSelected = selectedIndices.includes(i);
+            const order = selectedIndices.indexOf(i);
+            return (
+              <button
+                key={i}
+                onClick={() => toggleFrame(i)}
+                className="relative aspect-square rounded-lg overflow-hidden checkerboard transition-all"
+                style={{
+                  outline: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                  outlineOffset: isSelected ? '2px' : '0',
+                }}
+                title={`Frame ${i + 1}`}
               >
-                {i + 1}
-              </div>
-            </button>
-          );
-        })}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={frame}
+                  alt={`Frame ${i + 1}`}
+                  className="w-full h-full object-contain"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+                {isSelected && (
+                  <div
+                    className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                    style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
+                  >
+                    {order + 1}
+                  </div>
+                )}
+                <div
+                  className="absolute bottom-0.5 left-0.5 text-[9px] rounded px-0.5"
+                  style={{ color: '#aaa', backgroundColor: 'rgba(0,0,0,0.5)' }}
+                >
+                  {i + 1}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sticky bottom action bar */}
+      <div
+        className="flex items-center gap-3 px-6 py-3 shrink-0"
+        style={{
+          borderTop: '1px solid var(--border)',
+          backgroundColor: 'var(--card)',
+        }}
+      >
+        <button
+          onClick={() => runExtraction(videoFile)}
+          className="text-xs px-4 py-2 rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--muted)',
+            color: 'var(--muted-foreground)',
+          }}
+        >
+          Update
+        </button>
+        <button
+          onClick={() => { setVideoFile(null); setFrames([]); setSelectedIndices([]); }}
+          className="text-xs px-4 py-2 rounded-lg transition-colors"
+          style={{
+            backgroundColor: 'var(--muted)',
+            color: 'var(--muted-foreground)',
+          }}
+        >
+          Change Video
+        </button>
+        <div className="flex-1" />
+        <button
+          onClick={() => exportHandle.current?.exportZip()}
+          disabled={selectedIndices.length === 0}
+          className="px-5 py-2.5 text-sm font-medium rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            backgroundColor: 'var(--accent)',
+            color: 'var(--accent-foreground)',
+          }}
+        >
+          Export {selectedIndices.length} Frame{selectedIndices.length !== 1 ? 's' : ''}
+        </button>
       </div>
     </div>
   );
