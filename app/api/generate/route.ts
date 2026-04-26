@@ -2,25 +2,23 @@ import { NextRequest } from 'next/server';
 
 export const maxDuration = 60;
 
-// FLUX.1-schnell: free on HF Inference API, 4-step generation, high quality
-// Base URL changed in 2025: api-inference.huggingface.co → router.huggingface.co/hf-inference
 const HF_BASE = 'https://router.huggingface.co/hf-inference/models';
 const HF_MODEL = 'black-forest-labs/FLUX.1-schnell';
 
 const ART_STYLE_MAP: Record<string, string> = {
-  '8bit': '8-bit pixel art, NES era, very limited color palette, chunky blocky pixels',
-  '16bit': '16-bit pixel art, SNES era, rich palette, smooth shading',
-  '32bit': '32-bit pixel art, PlayStation 1 era, detailed sprites',
-  'chibi': 'chibi style, cute oversized head, small body, anime-inspired',
-  'vector': 'vector flat art, bold clean outlines, flat colors',
+  '8bit':      '8-bit pixel art, NES era, very limited color palette, chunky blocky pixels',
+  '16bit':     '16-bit pixel art, SNES era, rich palette, smooth shading',
+  '32bit':     '32-bit pixel art, PlayStation 1 era, detailed sprites',
+  'chibi':     'chibi style, cute oversized head, small body, anime-inspired',
+  'vector':    'vector flat art, bold clean outlines, flat colors',
   'handdrawn': 'hand-drawn ink sketch, rough lines, traditional animation style',
 };
 
 const ANGLE_MAP: Record<string, string> = {
-  'front': 'front-facing camera angle',
-  'profile': 'side profile view facing right',
+  'front':         'front-facing camera angle',
+  'profile':       'side profile view facing right',
   'three-quarter': 'three-quarter isometric perspective',
-  'topdown': 'top-down overhead view',
+  'topdown':       'top-down overhead view',
 };
 
 export async function POST(req: NextRequest) {
@@ -43,7 +41,6 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'prompt is required' }, { status: 400 });
   }
 
-  // Single character sprite — NOT a sprite sheet
   const fullPrompt =
     `Single full-body character sprite, centered on a solid neon green (#00FF00) chroma key background. ` +
     `Character: ${prompt.trim()}. ` +

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { AppState, AppAction, Sprite, GalleryFilter, GalleryItem } from '@/types';
+import type { AppState, AppAction, Sprite, Animation, GalleryFilter, GalleryItem } from '@/types';
 import ExportModal from './ExportModal';
 
 interface GalleryProps {
@@ -54,18 +54,27 @@ function ItemCard({
         isSelected ? 'border-blue-500' : 'border-transparent hover:border-[#333]'
       }`}>
         <div
-          className={`aspect-square overflow-hidden cursor-pointer ${
+          className={`aspect-square overflow-hidden cursor-pointer relative ${
             item.type === 'sprite' ? 'bg-[#00FF00]' : 'bg-[#0a0a0a]'
           }`}
           onClick={onClick}
         >
-          {/* Spritesheets show as static full-sheet image — animation happens in step 3 */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`data:${item.mimeType};base64,${item.imageBase64}`}
             alt={item.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+          {/* Video play badge for animations */}
+          {item.type === 'animation' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-[#1a1a1a] px-2 py-1.5">
@@ -85,7 +94,8 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
 
   const sortedSprites = [...state.sprites].sort((a, b) => b.createdAt - a.createdAt);
   const sortedSheets = [...state.spriteSheets].sort((a, b) => b.createdAt - a.createdAt);
-  const allItems: GalleryItem[] = [...sortedSprites, ...sortedSheets].sort(
+  const sortedAnimations = [...state.animations].sort((a, b) => b.createdAt - a.createdAt);
+  const allItems: GalleryItem[] = [...sortedSprites, ...sortedSheets, ...sortedAnimations].sort(
     (a, b) => b.createdAt - a.createdAt
   );
   const recentItems = allItems.slice(0, 5);
@@ -94,7 +104,7 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
     switch (state.galleryFilter) {
       case 'sprites':      return sortedSprites;
       case 'spritesheets': return sortedSheets;
-      case 'animations':   return sortedSheets;
+      case 'animations':   return sortedAnimations;
       default:             return allItems;
     }
   })();
@@ -102,7 +112,7 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
 
@@ -114,8 +124,8 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
   const tabs: { id: GalleryFilter; label: string; count: number }[] = [
     { id: 'all',          label: 'All',          count: allItems.length },
     { id: 'sprites',      label: 'Sprites',      count: state.sprites.length },
+    { id: 'animations',   label: 'Animations',   count: state.animations.length },
     { id: 'spritesheets', label: 'Sprite Sheets', count: state.spriteSheets.length },
-    { id: 'animations',   label: 'Animations',   count: state.spriteSheets.length },
   ];
 
   if (allItems.length === 0) {
@@ -169,8 +179,16 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
                       item.type === 'sprite' ? 'bg-[#00FF00]' : 'bg-[#0a0a0a]'
                     }`}
                     onClick={() => {
-                      if (item.type === 'sprite') onRemoveBg(item);
-                      else {
+                      if (item.type === 'sprite') {
+                        onRemoveBg(item);
+                      } else if (item.type === 'animation') {
+                        const anim = item as Animation;
+                        dispatch({ type: 'SET_PENDING_VIDEO', payload: {
+                          videoBase64: anim.videoBase64, videoMimeType: anim.videoMimeType,
+                          animationName: anim.animationName, spriteName: anim.name,
+                          spriteImageBase64: anim.imageBase64, spriteMimeType: anim.mimeType,
+                        }});
+                      } else {
                         dispatch({ type: 'SET_SELECTED_SHEET', payload: item.id });
                         dispatch({ type: 'SET_VIEW', payload: 'animate' });
                       }
@@ -259,8 +277,22 @@ export default function Gallery({ state, dispatch, onRemoveBg, onSelectForReview
                   setSelected((prev) => { const next = new Set(prev); next.delete(item.id); return next; });
                 }}
                 onClick={() => {
-                  if (item.type === 'sprite') onRemoveBg(item);
-                  else {
+                  if (item.type === 'sprite') {
+                    onRemoveBg(item);
+                  } else if (item.type === 'animation') {
+                    const anim = item as Animation;
+                    dispatch({
+                      type: 'SET_PENDING_VIDEO',
+                      payload: {
+                        videoBase64: anim.videoBase64,
+                        videoMimeType: anim.videoMimeType,
+                        animationName: anim.animationName,
+                        spriteName: anim.name,
+                        spriteImageBase64: anim.imageBase64,
+                        spriteMimeType: anim.mimeType,
+                      },
+                    });
+                  } else {
                     dispatch({ type: 'SET_SELECTED_SHEET', payload: item.id });
                     dispatch({ type: 'SET_VIEW', payload: 'animate' });
                   }

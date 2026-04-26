@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import type { Sprite, ChromaKeySettings } from '@/types';
+import type { Sprite } from '@/types';
 import { applyChromaKey } from '@/lib/chromaKey';
 
 interface ChromaKeyModalProps {

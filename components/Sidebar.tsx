@@ -124,7 +124,7 @@ export default function Sidebar({ currentView, onNavigate, recentItems, onRecent
                   onClick={() => onRecentClick(item)}
                   className="group relative aspect-square rounded-md overflow-hidden"
                   style={{ backgroundColor: 'var(--muted)' }}
-                  title={item.name}
+                  title={item.type !== 'sprite' ? `${item.name} — ${item.animationName}` : item.name}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -132,6 +132,21 @@ export default function Sidebar({ currentView, onNavigate, recentItems, onRecent
                     alt={item.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />
+                  {/* Type badge */}
+                  {item.type === 'animation' && (
+                    <div className="absolute top-1 left-1 w-3.5 h-3.5 rounded-full bg-blue-600 flex items-center justify-center">
+                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  )}
+                  {item.type === 'spritesheet' && (
+                    <div className="absolute top-1 left-1 w-3.5 h-3.5 rounded-full bg-purple-600 flex items-center justify-center">
+                      <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </div>
+                  )}
                   <div
                     className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-[9px] truncate opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' }}
