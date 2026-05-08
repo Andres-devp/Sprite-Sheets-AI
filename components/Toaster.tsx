@@ -9,10 +9,10 @@ interface ToastItem {
   type: ToastType;
 }
 
-const BG: Record<ToastType, string> = {
-  success: '#16a34a',
-  error: 'var(--destructive)',
-  info: 'var(--accent)',
+const STYLES: Record<ToastType, { bg: string; border: string; color: string; icon: string }> = {
+  success: { bg: '#0A1A0E', border: '#16a34a', color: '#4ADE80', icon: '✓' },
+  error:   { bg: '#1A0A0C', border: 'var(--destructive)', color: '#FF6B77', icon: '!' },
+  info:    { bg: '#0D0E08', border: 'var(--accent)', color: 'var(--accent)', icon: 'i' },
 };
 
 export default function Toaster() {
@@ -32,21 +32,55 @@ export default function Toaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-[300] flex flex-col gap-2 pointer-events-none">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className="px-4 py-2.5 rounded-xl text-sm font-medium shadow-2xl animate-fade-in-up"
-          style={{
-            backgroundColor: BG[t.type],
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.15)',
-            maxWidth: 320,
-          }}
-        >
-          {t.message}
-        </div>
-      ))}
+    <div style={{
+      position: 'fixed',
+      bottom: 20, right: 20,
+      zIndex: 300,
+      display: 'flex', flexDirection: 'column', gap: 8,
+      pointerEvents: 'none',
+    }}>
+      {toasts.map((t) => {
+        const s = STYLES[t.type];
+        return (
+          <div
+            key={t.id}
+            className="animate-fade-in-up"
+            style={{
+              backgroundColor: s.bg,
+              border: `1px solid ${s.border}`,
+              borderRadius: 3,
+              padding: '9px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              maxWidth: 340,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{
+              width: 18, height: 18,
+              borderRadius: 2,
+              border: `1px solid ${s.border}`,
+              backgroundColor: `color-mix(in srgb, ${s.border} 15%, transparent)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)',
+              fontSize: 9, fontWeight: 700,
+              color: s.color,
+              flexShrink: 0,
+            }}>
+              {s.icon}
+            </div>
+            <span style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              color: 'var(--foreground)',
+              lineHeight: 1.4,
+            }}>
+              {t.message}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -6,19 +6,21 @@ export function applyChromaKey(
   height: number,
   settings: ChromaKeySettings
 ): void {
-  const { targetColor, tolerance, erosion, edgeSoftness } = settings;
-  const [tr, tg, tb] = targetColor;
+  const { targetColors, tolerance, erosion, edgeSoftness } = settings;
+  const threshold = tolerance * 3;
 
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
-  const threshold = tolerance * 3;
 
-  // Pass 1: mark transparent pixels
+  // Pass 1: mark transparent pixels — any pixel matching ANY target color
   const transparent = new Uint8Array(width * height);
   for (let i = 0; i < data.length; i += 4) {
     const pixel = i / 4;
     const r = data[i], g = data[i + 1], b = data[i + 2];
-    if (Math.abs(r - tr) + Math.abs(g - tg) + Math.abs(b - tb) < threshold) {
+    const hit = targetColors.some(([tr, tg, tb]) =>
+      Math.abs(r - tr) + Math.abs(g - tg) + Math.abs(b - tb) < threshold
+    );
+    if (hit) {
       transparent[pixel] = 1;
       data[i + 3] = 0;
     }

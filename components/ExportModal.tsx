@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import JSZip from 'jszip';
 import type { GalleryItem } from '@/types';
+import { Icon, GlowButton } from '@/components/Shared';
 
 interface ExportModalProps {
   items: GalleryItem[];
@@ -31,16 +32,16 @@ export default function ExportModal({ items, onClose }: ExportModalProps) {
         const folderName = folderNames[i].trim() || `Image #${i + 1}`;
         const folder = zip.folder(folderName) ?? zip;
 
-        const ext = item.mimeType?.includes('png') ? 'png' : 'jpg';
-        const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'image';
-        folder.file(`${safeName}.${ext}`, item.imageBase64, { base64: true });
+        const ext = item.mimeType?.includes('png') ? 'png' : 'webm';
+        const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'asset';
+        folder.file(`${safeName}.${ext}`, item.type === 'animation' ? item.videoBase64! : item.imageBase64, { base64: true });
       });
 
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sprites_export.zip`;
+      a.download = `spritecraft_export.zip`;
       a.click();
       URL.revokeObjectURL(url);
       onClose();
@@ -55,44 +56,50 @@ export default function ExportModal({ items, onClose }: ExportModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: 'rgba(6,8,16,0.85)', backdropFilter: 'blur(4px)', animation: 'fadeIn 0.2s ease'
+      }}
       onClick={onClose}
       onKeyDown={handleKeyDown}
+      tabIndex={0}
     >
       <div
-        className="bg-[#1e1e1e] rounded-xl border border-[#2a2a2a] w-full max-w-md p-6 shadow-2xl"
+        style={{
+          backgroundColor: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+          width: '100%', maxWidth: '480px', padding: '24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+          display: 'flex', flexDirection: 'column', gap: '16px'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-sm font-semibold text-white">Download Sprites</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text0)', letterSpacing: '-0.01em' }}>Export Assets</h2>
+            <p style={{ fontSize: '13px', color: 'var(--text2)', marginTop: '2px' }}>
+              Download {items.length} selected item{items.length !== 1 ? 's' : ''} as a ZIP file.
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#3a3a3a] transition-colors"
+            style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--bg2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg3)'; e.currentTarget.style.color = 'var(--text0)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg2)'; e.currentTarget.style.color = 'var(--text2)'; }}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <Icon name="x" size={16} />
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 mb-3">
-          File Preview ({items.length} file{items.length !== 1 ? 's' : ''})
-        </p>
-
-        <div className="bg-[#111] rounded-lg border border-[#2a2a2a] overflow-hidden mb-5 max-h-64 overflow-y-auto">
+        <div style={{ backgroundColor: 'var(--bg2)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', overflow: 'hidden', maxHeight: '320px', overflowY: 'auto' }}>
           {items.map((item, i) => {
             const folderName = folderNames[i].trim() || `Image #${i + 1}`;
-            const ext = item.mimeType?.includes('png') ? 'png' : 'jpg';
-            const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'image';
+            const ext = item.mimeType?.includes('png') ? 'png' : 'webm';
+            const safeName = item.name.replace(/[^a-z0-9_\-]/gi, '_').slice(0, 40) || 'asset';
             const isEditing = editingIdx === i;
 
             return (
-              <div key={item.id}>
-                {/* Folder row */}
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-[#1e1e1e]">
-                  <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                  </svg>
+              <div key={item.id} style={{ borderBottom: i === items.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'var(--bg3)' }}>
+                  <Icon name="layers" size={14} color="var(--text2)" />
                   {isEditing ? (
                     <input
                       ref={editInputRef}
@@ -109,33 +116,32 @@ export default function ExportModal({ items, onClose }: ExportModalProps) {
                         if (e.key === 'Enter' || e.key === 'Escape') setEditingIdx(null);
                         e.stopPropagation();
                       }}
-                      className="flex-1 bg-[#1a1a1a] border border-blue-500 rounded px-1.5 py-0.5 text-xs text-gray-200 focus:outline-none min-w-0"
+                      style={{ flex: 1, backgroundColor: 'var(--bg1)', border: '1px solid var(--cyan)', borderRadius: '4px', padding: '2px 6px', fontSize: '13px', color: 'var(--text0)', fontFamily: 'var(--font-mono)', outline: 'none' }}
                     />
                   ) : (
-                    <span className="text-xs text-gray-400 font-mono flex-1 truncate">
+                    <span style={{ fontSize: '13px', color: 'var(--text1)', fontFamily: 'var(--font-mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {folderName}/
                     </span>
                   )}
                   {!isEditing && (
                     <button
                       onClick={() => setEditingIdx(i)}
-                      className="text-gray-600 hover:text-gray-300 transition-colors flex-shrink-0"
+                      style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--text1)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
+                      <Icon name="wand" size={14} />
                     </button>
                   )}
                 </div>
-                {/* File row */}
-                <div className="flex items-center gap-2 px-3 py-1.5 pl-7 border-b border-[#1a1a1a]">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px 8px 38px' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`data:${item.mimeType};base64,${item.imageBase64}`}
                     alt={item.name}
-                    className="w-4 h-4 object-cover rounded flex-shrink-0"
+                    style={{ width: '24px', height: '24px', objectFit: 'contain', imageRendering: 'pixelated', borderRadius: '4px', backgroundColor: 'var(--bg4)', border: '1px solid var(--border)' }}
                   />
-                  <span className="text-xs text-gray-600 font-mono truncate">
+                  <span style={{ fontSize: '12px', color: 'var(--text2)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {safeName}.{ext}
                   </span>
                 </div>
@@ -144,20 +150,11 @@ export default function ExportModal({ items, onClose }: ExportModalProps) {
           })}
         </div>
 
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 text-sm bg-[#2a2a2a] hover:bg-[#333] text-gray-400 rounded-lg transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex-1 py-2 text-sm bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#3a3a3a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-          >
-            {downloading ? 'Zipping…' : `Download ZIP (${items.length})`}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+          <GlowButton variant="ghost" onClick={onClose}>Cancel</GlowButton>
+          <GlowButton onClick={handleDownload} disabled={downloading}>
+            {downloading ? 'Zipping...' : `Download ZIP`}
+          </GlowButton>
         </div>
       </div>
     </div>

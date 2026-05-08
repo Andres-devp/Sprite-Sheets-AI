@@ -2,6 +2,7 @@
  * Extracts frames from a video File at a given FPS using HTMLVideoElement + HTMLCanvasElement.
  * Client-side only.
  */
+import { setupPixelCanvas } from './canvasPixel';
 export async function extractVideoFrames(
   videoFile: File,
   fps: number,
@@ -43,13 +44,11 @@ export async function extractVideoFrames(
 
       video.addEventListener('seeked', () => {
         if (!ctx) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx = canvas.getContext('2d');
+          ctx = setupPixelCanvas(canvas, video.videoWidth, video.videoHeight, { pixelRatio: 1, applyStyles: false });
         }
         if (!ctx) { frameIndex++; captureNext(); return; }
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         frames.push(canvas.toDataURL('image/png'));
         onProgress?.(frameIndex + 1, totalFrames);
         frameIndex++;

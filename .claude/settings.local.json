@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(npm install *)",
+      "Bash(node -e \"const fal = require\\('@fal-ai/client'\\); console.log\\(Object.keys\\(fal\\)\\)\")",
+      "Bash(node -e \"const { fal } = require\\('@fal-ai/client'\\); console.log\\(Object.keys\\(fal\\)\\)\")",
+      "Bash(node -e \"const { Client } = require\\('@gradio/client'\\); console.log\\(typeof Client\\)\")",
+      "Bash(node -e \"const pkg = require\\('@gradio/client/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(node -e \"const g = require\\('@gradio/client'\\); console.log\\(Object.keys\\(g\\)\\)\")",
+      "Bash(node -e \"const { Client } = require\\('@gradio/client'\\); const c = new Client\\(\\); console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(c\\)\\)\\)\")",
+      "Bash(node -e \"const g = require\\('@gradio/client'\\); const src = require\\('fs'\\).readFileSync\\('./node_modules/@gradio/client/dist/index.d.ts','utf8'\\).slice\\(0,3000\\); console.log\\(src\\)\")",
+      "Bash(node -e \"const src = require\\('fs'\\).readFileSync\\('./node_modules/@gradio/client/dist/client.d.ts','utf8'\\).slice\\(0,4000\\); console.log\\(src\\)\")",
+      "Bash(git add *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'feat: performance, new export features, toast notifications, and UX improvements' --body ' *)",
+      "Bash(where gh *)",
+      "Bash(winget list *)",
+      "PowerShell(git -C \"C:\\\\Users\\\\Andres\\\\Desktop\\\\SpriteSheet\\\\sprite-sheet-app\" config --list)",
+      "Bash(node -e \"const {execSync} = require\\('child_process'\\); try { execSync\\('grep -r \\\\\"Unbounded\\\\\\\\|DM_Mono\\\\\\\\|dm-mono\\\\\" .next/static --include=\\\\\"*.js\\\\\" -l 2>nul'\\); } catch\\(e\\) { console.log\\('searching...'\\); }\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Andres\\\\Desktop\\\\SpriteSheet\\\\sprite-sheet-app\" -Recurse -Force)",
+      "Bash(Select-Object -First 50 FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Andres\\\\Desktop\\\\SpriteSheet\\\\sprite-sheet-app\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Select-Object FullName)",
+      "Bash(Head -50)"
+    ]
+  }
+}

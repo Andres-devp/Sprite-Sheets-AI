@@ -1,12 +1,15 @@
 'use client';
 
+import React, { useState } from 'react';
 import type { AppView, GalleryItem } from '@/types';
+import { SpriteCraftLogo, Icon, Tooltip } from '@/components/Shared';
 
 interface SidebarProps {
   currentView: AppView;
   onNavigate: (view: AppView) => void;
   recentItems: GalleryItem[];
   onRecentClick: (item: GalleryItem) => void;
+  variantIsB?: boolean;
 }
 
 function resolveActiveNav(view: AppView): AppView {
@@ -14,192 +17,122 @@ function resolveActiveNav(view: AppView): AppView {
   return view;
 }
 
-const NAV_ITEMS: { id: AppView; label: string; icon: string }[] = [
-  { id: 'video', label: 'Video to Sprite', icon: 'video' },
-  { id: 'generate', label: 'AI Generate', icon: 'sparkles' },
-  { id: 'gallery', label: 'Gallery', icon: 'grid' },
-];
-
-function NavIcon({ name }: { name: string }) {
-  if (name === 'video') {
-    return (
-      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-      </svg>
-    );
-  }
-  if (name === 'sparkles') {
-    return (
-      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M5 3l14 9-14 9V3z" />
-      </svg>
-    );
-  }
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
-}
-
-export default function Sidebar({ currentView, onNavigate, recentItems, onRecentClick }: SidebarProps) {
+export default function Sidebar({ currentView, onNavigate, recentItems, onRecentClick, variantIsB = false }: SidebarProps) {
   const activeNav = resolveActiveNav(currentView);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const navItems: { id: AppView; icon: string; label: string }[] = [
+    { id: 'generate', icon: 'sparkle', label: 'AI Generate' },
+    { id: 'video', icon: 'video', label: 'Video to Sprite' },
+    { id: 'gallery', icon: 'grid', label: 'Gallery' },
+  ];
 
   return (
-    <aside
-      className="w-60 flex-shrink-0 flex flex-col h-screen"
-      style={{
-        backgroundColor: 'var(--sidebar-background)',
-        borderRight: '1px solid var(--sidebar-border)',
-      }}
-    >
-      {/* Logo */}
-      <div
-        className="flex items-center gap-2 px-4 py-4 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
-      >
-        <div
-          className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold"
-          style={{
-            backgroundColor: 'var(--sidebar-primary)',
-            color: 'var(--sidebar-primary-foreground)',
-          }}
-        >
-          S
+    <>
+      {/* ── Icon Sidebar ── */}
+      <div style={{
+        width:'var(--sidebar-w)', height:'100%', display:'flex', flexDirection:'column',
+        alignItems:'center', borderRight:'1px solid var(--border)',
+        background: variantIsB
+          ? 'linear-gradient(180deg,var(--bg2),var(--bg1))'
+          : 'var(--bg1)',
+        paddingTop:'16px', paddingBottom:'16px', gap:'4px',
+        zIndex:10, flexShrink:0
+      }}>
+        {/* Logo */}
+        <div style={{ marginBottom:'16px', padding:'4px' }}>
+          <SpriteCraftLogo size={30}/>
         </div>
-        <span className="font-semibold text-sm" style={{ color: 'var(--sidebar-foreground)' }}>
-          Sprite Sheets AI
-        </span>
+
+        <div style={{ width:'36px', height:'1px', background:'var(--border)', marginBottom:'8px' }}/>
+
+        {/* Nav items */}
+        {navItems.map(item => (
+          <Tooltip key={item.id} label={item.label}>
+            <button onClick={() => onNavigate(item.id)}
+              style={{
+                width:'50px', height:'50px', borderRadius:'var(--r-md)', border:'none',
+                background: activeNav === item.id
+                  ? (variantIsB ? 'linear-gradient(135deg,rgba(86,149,230,0.2),rgba(139,120,255,0.1))' : 'var(--cyan-dim)')
+                  : 'transparent',
+                color: activeNav === item.id ? 'var(--cyan)' : 'var(--text2)',
+                cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                transition:'all 0.2s ease',
+                boxShadow: activeNav === item.id ? '0 0 16px var(--cyan-glow)' : 'none',
+                position:'relative'
+              }}>
+              <Icon name={item.icon} size={22}/>
+              {activeNav === item.id && (
+                <div style={{ position:'absolute', left:'2px', top:'50%', transform:'translateY(-50%)', width:'2px', height:'24px', background:'var(--cyan)', borderRadius:'1px', boxShadow:'0 0 8px var(--cyan-glow)' }}/>
+              )}
+            </button>
+          </Tooltip>
+        ))}
+
+        <div style={{ flex:1 }}/>
+
+        {/* Bottom actions */}
+        <Tooltip label="Recent History">
+          <button onClick={() => setHistoryOpen(!historyOpen)}
+            style={{
+              width:'50px', height:'50px', borderRadius:'var(--r-md)', border:'none',
+              background: historyOpen ? 'var(--purple-dim)' : 'transparent',
+              color: historyOpen ? 'var(--purple)' : 'var(--text2)',
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s'
+            }}>
+            <Icon name="history" size={22}/>
+          </button>
+        </Tooltip>
+        <Tooltip label="Account">
+          <button onClick={() => onNavigate('account')} style={{
+            width:'50px', height:'50px', borderRadius:'var(--r-md)', border:'none',
+            background: activeNav === 'account' ? 'var(--purple-dim)' : 'transparent',
+            color:'var(--text2)',
+            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s',
+            boxShadow: activeNav === 'account' ? '0 0 16px rgba(139,120,255,0.2)' : 'none',
+          }}>
+            <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'linear-gradient(135deg,var(--purple),var(--cyan))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:700, color:'#fff', boxShadow: activeNav === 'account' ? '0 0 10px rgba(139,120,255,0.5)' : 'none' }}>A</div>
+          </button>
+        </Tooltip>
       </div>
 
-      {/* Nav */}
-      <nav className="px-3 pt-3 space-y-0.5 flex-shrink-0">
-        {NAV_ITEMS.map((item) => {
-          const isActive = activeNav === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors"
-              style={{
-                backgroundColor: isActive ? 'var(--sidebar-primary)' : 'transparent',
-                color: isActive
-                  ? 'var(--sidebar-primary-foreground)'
-                  : 'var(--sidebar-foreground)',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive)
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                    'var(--sidebar-accent)';
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive)
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-              }}
-            >
-              <NavIcon name={item.icon} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Recent */}
-      {recentItems.length > 0 && (
-        <div className="mt-4 flex-1 min-h-0 flex flex-col px-3">
-          <p
-            className="text-[10px] font-medium uppercase tracking-wider px-1 mb-2 flex-shrink-0"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            Recent
-          </p>
-          <div className="overflow-y-auto flex-1">
-            <div className="grid grid-cols-2 gap-1.5 pb-2">
-              {recentItems.slice(0, 12).map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onRecentClick(item)}
-                  className="group relative aspect-square rounded-md overflow-hidden"
-                  style={{ backgroundColor: 'var(--muted)' }}
-                  title={item.type !== 'sprite' ? `${item.name} — ${item.animationName}` : item.name}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`data:${item.mimeType};base64,${item.imageBase64}`}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                  {/* Type badge */}
-                  {item.type === 'animation' && (
-                    <div className="absolute top-1 left-1 w-3.5 h-3.5 rounded-full bg-blue-600 flex items-center justify-center">
-                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                  )}
-                  {item.type === 'spritesheet' && (
-                    <div className="absolute top-1 left-1 w-3.5 h-3.5 rounded-full bg-purple-600 flex items-center justify-center">
-                      <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </div>
-                  )}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-[9px] truncate opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: 'white' }}
-                  >
-                    {item.name.slice(0, 10)}
+      {/* ── History Drawer ── */}
+      {historyOpen && (
+        <div style={{
+          width:'220px', height:'100%', borderRight:'1px solid var(--border)', background:'var(--bg1)',
+          display:'flex', flexDirection:'column', animation:'slideInLeft 0.2s ease', flexShrink:0
+        }}>
+          <div style={{ padding:'16px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span style={{ fontSize:'12px', fontWeight:600, color:'var(--text1)', fontFamily:'var(--font-ui)' }}>Recent</span>
+            <button onClick={() => setHistoryOpen(false)} style={{ background:'none', border:'none', color:'var(--text3)', cursor:'pointer' }}><Icon name="x" size={14}/></button>
+          </div>
+          <div style={{ flex:1, overflowY:'auto', padding:'8px' }}>
+            {recentItems.map(item => {
+              const color = item.type === 'sprite' ? '#5695e6' : item.type === 'spritesheet' ? '#8b78ff' : '#ffb830';
+              return (
+                <button key={item.id} onClick={() => { setHistoryOpen(false); onRecentClick(item); }}
+                  style={{
+                    width:'100%', display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px',
+                    borderRadius:'var(--r-sm)', border:'none', background:'transparent', cursor:'pointer',
+                    transition:'all 0.15s', textAlign:'left'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='var(--bg3)'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <div style={{ width:'32px', height:'32px', borderRadius:'6px', background:`${color}20`, border:`1px solid ${color}30`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    {item.type === 'sprite' ? <Icon name="sparkle" size={16} color={color}/> : 
+                     item.type === 'spritesheet' ? <Icon name="grid" size={16} color={color}/> : 
+                     <Icon name="video" size={16} color={color}/>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:'12px', fontWeight:500, color:'var(--text1)' }}>{item.name || 'Unnamed'}</div>
+                    <div style={{ fontSize:'12px', color:'var(--text3)', fontFamily:'var(--font-ui)', marginTop:'1px', textTransform:'capitalize' }}>{item.type}</div>
                   </div>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
-
-      {/* User Profile */}
-      <div
-        className="p-3 flex-shrink-0"
-        style={{ borderTop: '1px solid var(--sidebar-border)' }}
-      >
-        <button
-          className="w-full flex items-center gap-2.5 p-2 rounded-md transition-colors"
-          style={{ color: 'var(--sidebar-foreground)' }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--sidebar-accent)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-          }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' }}
-          >
-            A
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-sm font-medium truncate" style={{ color: 'var(--sidebar-foreground)' }}>
-              Andres
-            </p>
-            <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>
-              free
-            </p>
-          </div>
-          <svg
-            className="w-4 h-4 flex-shrink-0"
-            style={{ color: 'var(--muted-foreground)' }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </aside>
+    </>
   );
 }

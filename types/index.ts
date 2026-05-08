@@ -1,6 +1,6 @@
 export type ArtStyle = '8bit' | '16bit' | '32bit' | 'chibi' | 'vector' | 'handdrawn';
 export type CameraAngle = 'front' | 'profile' | 'three-quarter' | 'topdown';
-export type AppView = 'generate' | 'review' | 'animate' | 'gallery' | 'video';
+export type AppView = 'generate' | 'review' | 'animate' | 'gallery' | 'video' | 'account';
 export type GalleryFilter = 'all' | 'sprites' | 'spritesheets' | 'animations';
 
 export interface PendingVideoResult {
@@ -64,7 +64,7 @@ export interface Animation {
 export type GalleryItem = Sprite | SpriteSheet | Animation;
 
 export interface ChromaKeySettings {
-  targetColor: [number, number, number];
+  targetColors: [number, number, number][];
   tolerance: number;
   erosion: number;
   edgeSoftness: number;
@@ -80,6 +80,7 @@ export interface AppState {
   galleryFilter: GalleryFilter;
   isGenerating: boolean;
   isAnimating: boolean;
+  animatingProgress: number;
   error: string | null;
   pendingVideoResult: PendingVideoResult | null;
 }
@@ -88,6 +89,7 @@ export type AppAction =
   | { type: 'SET_VIEW'; payload: AppView }
   | { type: 'ADD_SPRITE'; payload: Sprite }
   | { type: 'ADD_SPRITESHEET'; payload: SpriteSheet }
+  | { type: 'ADD_SPRITESHEET_NO_NAV'; payload: SpriteSheet }
   | { type: 'ADD_ANIMATION'; payload: Animation }
   | { type: 'UPDATE_SPRITESHEET_FRAMES'; payload: { id: string; frames: string[] } }
   | { type: 'SET_SELECTED_FOR_REVIEW'; payload: string[] }
@@ -95,6 +97,7 @@ export type AppAction =
   | { type: 'SET_GALLERY_FILTER'; payload: GalleryFilter }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_ANIMATING'; payload: boolean }
+  | { type: 'SET_ANIMATING_PROGRESS'; payload: number }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'DELETE_ITEM'; payload: string }
   | { type: 'SET_PENDING_VIDEO'; payload: PendingVideoResult | null }
