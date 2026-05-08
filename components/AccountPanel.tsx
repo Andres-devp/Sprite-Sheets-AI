@@ -39,6 +39,20 @@ function StatCard({ label, value, icon, color }: { label: string; value: number;
 export default function AccountPanel({ state, dispatch }: AccountPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [hfKey, setHfKey] = useState(() => { try { return localStorage.getItem('hf-api-key') ?? ''; } catch { return ''; } });
+  const [hfKeySaved, setHfKeySaved] = useState(false);
+  const [showHfKey, setShowHfKey] = useState(false);
+
+  const handleSaveHfKey = () => {
+    try { localStorage.setItem('hf-api-key', hfKey.trim()); } catch {}
+    setHfKeySaved(true);
+    setTimeout(() => setHfKeySaved(false), 3000);
+  };
+
+  const handleClearHfKey = () => {
+    try { localStorage.removeItem('hf-api-key'); } catch {}
+    setHfKey('');
+  };
 
   const creditsRemaining = CREDITS_TOTAL - CREDITS_USED;
   const creditsPercent = (CREDITS_USED / CREDITS_TOTAL) * 100;
@@ -183,6 +197,101 @@ export default function AccountPanel({ state, dispatch }: AccountPanelProps) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* HuggingFace API Key */}
+        <div>
+          <SectionLabel>HuggingFace API Key</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', background: 'var(--bg2)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+            {/* Guide */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text1)', fontWeight: 500 }}>Required for AI sprite generation and animation</div>
+              <div style={{ fontSize: '12px', color: 'var(--text3)', fontFamily: 'var(--font-ui)', lineHeight: 1.6 }}>
+                SpriteCraft uses HuggingFace Inference API (FLUX.1-schnell) and Stable Video Diffusion.
+                Get a free key at{' '}
+                <a
+                  href="https://huggingface.co/settings/tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--cyan)', textDecoration: 'none', fontWeight: 600 }}
+                  onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                >
+                  huggingface.co/settings/tokens
+                </a>
+                . Create a token with <strong style={{ color: 'var(--text1)' }}>Read</strong> access (or use a fine-grained token with inference permissions).
+              </div>
+            </div>
+
+            {/* Steps */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {[
+                'Go to huggingface.co/settings/tokens',
+                'Click "New token" → choose Read access',
+                'Copy the token (starts with hf_...)',
+                'Paste it below and click Save',
+              ].map((step, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'var(--cyan-dim)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--cyan)' }}>{i + 1}</span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text2)', fontFamily: 'var(--font-ui)', lineHeight: 1.5 }}>{step}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Input row */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <input
+                  type={showHfKey ? 'text' : 'password'}
+                  value={hfKey}
+                  onChange={e => setHfKey(e.target.value)}
+                  placeholder="hf_..."
+                  spellCheck={false}
+                  style={{
+                    width: '100%', padding: '8px 36px 8px 12px', borderRadius: 'var(--r-sm)',
+                    background: 'var(--bg0)', border: '1px solid var(--border)',
+                    color: 'var(--text0)', fontSize: '13px', fontFamily: 'var(--font-mono)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                />
+                <button
+                  onClick={() => setShowHfKey(v => !v)}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', padding: 0 }}
+                >
+                  <Icon name={showHfKey ? 'eyeOff' : 'eye'} size={14} />
+                </button>
+              </div>
+              <GlowButton size="sm" onClick={handleSaveHfKey} style={{ flexShrink: 0 }}>
+                Save
+              </GlowButton>
+              {hfKey && (
+                <GlowButton variant="ghost" size="sm" onClick={handleClearHfKey} style={{ flexShrink: 0 }}>
+                  Clear
+                </GlowButton>
+              )}
+            </div>
+
+            {/* Status */}
+            {hfKeySaved && (
+              <div style={{ fontSize: '12px', color: 'var(--success)', fontFamily: 'var(--font-ui)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon name="check" size={12} color="var(--success)" /> Key saved — ready to generate.
+              </div>
+            )}
+            {!hfKey && (
+              <div style={{ fontSize: '12px', color: 'var(--warn)', fontFamily: 'var(--font-ui)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon name="warning" size={12} color="var(--warn)" /> No key set — AI features will not work.
+              </div>
+            )}
+            {hfKey && !hfKeySaved && (
+              <div style={{ fontSize: '12px', color: 'var(--success)', fontFamily: 'var(--font-ui)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon name="check" size={12} color="var(--success)" /> Key is saved.
+              </div>
+            )}
           </div>
         </div>
 

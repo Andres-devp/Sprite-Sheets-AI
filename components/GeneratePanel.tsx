@@ -45,9 +45,10 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
     if (!prompt.trim() || state.isGenerating) return;
     dispatch({ type: 'SET_GENERATING', payload: true });
     try {
+      const hfKey = localStorage.getItem('hf-api-key') ?? '';
       const res = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(hfKey ? { 'X-HF-Token': hfKey } : {}) },
         body: JSON.stringify({ prompt: prompt.trim(), artStyle, cameraAngle }),
       });
       const data = await res.json();
@@ -176,7 +177,7 @@ export default function GeneratePanel({ state, dispatch }: GeneratePanelProps) {
         {/* Camera Angle */}
         <div>
           <SectionLabel>Camera Angle</SectionLabel>
-          <SegmentControl options={CAMERA_ANGLES} value={cameraAngle} onChange={setCameraAngle}/>
+          <SegmentControl options={CAMERA_ANGLES} value={cameraAngle} onChange={(v) => setCameraAngle(v as CameraAngle)}/>
         </div>
 
         {/* Recent generations mini-preview */}

@@ -22,9 +22,9 @@ const ANGLE_MAP: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  const apiKey = req.headers.get('X-HF-Token') || process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) {
-    return Response.json({ error: 'HUGGINGFACE_API_KEY not configured on server' }, { status: 500 });
+    return Response.json({ error: 'No HuggingFace API key. Add your key in the Account tab.' }, { status: 401 });
   }
 
   const seed = Math.floor(Math.random() * 2_147_483_647);

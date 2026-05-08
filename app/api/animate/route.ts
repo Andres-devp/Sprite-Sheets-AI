@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const imageBlob = new Blob([imageBuffer], { type: spriteMimeType });
 
     // Authenticated requests get priority queue on HF Spaces
-    const hfToken = process.env.HUGGINGFACE_API_KEY as `hf_${string}` | undefined;
+    const hfToken = (req.headers.get('X-HF-Token') || process.env.HUGGINGFACE_API_KEY) as `hf_${string}` | undefined;
 
     console.log('[animate] connecting to Gradio Space:', SPACE_ID);
     const gradioClient = await Client.connect(SPACE_ID, {

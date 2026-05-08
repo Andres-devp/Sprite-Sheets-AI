@@ -123,9 +123,10 @@ export default function ReviewPanel({ state, dispatch, onOpenSpritePicker, onPre
     const results = await Promise.allSettled(
       selectedSprites.map(async (sprite) => {
         const upscaledBase64 = await upscaleBase64(sprite.imageBase64, sprite.mimeType, 512);
+        const hfKey = localStorage.getItem('hf-api-key') ?? '';
         const res = await fetch('/api/animate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(hfKey ? { 'X-HF-Token': hfKey } : {}) },
           body: JSON.stringify({
             sourcePrompt: sprite.prompt,
             animationName: animationDesc.trim(),
